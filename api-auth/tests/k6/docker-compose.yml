@@ -1,0 +1,44 @@
+# =============================================================================
+# Docker Compose — k6 Load & Contract Tests
+# Auth Service — Homelab Skaotico v2
+# =============================================================================
+#
+# Ejecuta los tests de k6 en un contenedor aislado sin necesidad de tener k6
+# instalado en la máquina del desarrollador.
+#
+# Uso:
+#   docker compose run --rm k6                 # Flujo completo (por defecto)
+#   docker compose run --rm k6 run /scripts/auth_flow.js -e BASE_URL=http://...
+#
+# El servicio de auth debe estar corriendo ANTES de ejecutar los tests.
+# Ajustar BASE_URL para que apunte al entorno correcto (local, homelab, staging).
+# =============================================================================
+
+services:
+
+  k6:
+    image: grafana/k6:latest
+    container_name: auth-k6-runner
+
+    # Monta los scripts locales dentro del contenedor (solo lectura)
+    volumes:
+      - ./tests/k6:/scripts:ro
+
+    # Variables de entorno configurables desde el host.
+    # BASE_URL apunta al servicio de auth. En Windows con Docker Desktop
+    # usar host.docker.internal para llegar al localhost del host.
+    environment:
+      - BASE_URL=${BASE_URL:-http://host.docker.internal:9090}
+      - K6_LOG_FORMAT=json
+
+    # Comando por defecto: ejecutar el flujo completo de autenticación
+    # Se puede sobreescribir al hacer: docker compose run k6 run /scripts/otro.js
+    command: run /scripts/auth_flow.js
+
+    # Permite al contenedor resolver host.docker.internal en Linux/Mac
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    # Guardar el reporte JSON en la carpeta local montada
+    # El archivo aparecerá en ./tests/k6/results/ después de correr
+    # Para activarlo: docker compose run k6 run --out json=/scripts/results/run.json /scripts/auth_flow.js
