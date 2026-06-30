@@ -24,10 +24,10 @@ pipeline {
         IMAGES_TO_KEEP = '2'
 
         // Nombre de la imagen Docker
-        IMAGE_NAME = 'retro-market-api-auth'
+        IMAGE_NAME = 'homelab-api-auth'
 
         // Nombre del contenedor
-        CONTAINER_NAME = 'api-auth'
+        CONTAINER_NAME = 'homelab-api-auth'
 
         // Puerto expuesto por la aplicación
         PORT = '9090'
@@ -36,16 +36,16 @@ pipeline {
         APP_PATH = 'apis/api-auth'
 
         // Dirección de HashiCorp Vault en el homelab
-        VAULT_ADDR = 'http://192.168.1.20:8200'
+        VAULT_ADDR = 'http://192.168.1.28:8200'
 
         // Ruta del secreto en Vault (API KV-v2)
-        VAULT_SECRET_PATH = 'retromarket/data/dev/api-auth'
+        VAULT_SECRET_PATH = 'homelab/data/dev/api-auth'
 
         // Registro Docker Privado
-        DOCKER_REGISTRY = '192.168.1.20:5000'
+        DOCKER_REGISTRY = '192.168.1.28:5000'
 
         // Namespace del Registro
-        DOCKER_NAMESPACE = 'retromarket'
+        DOCKER_NAMESPACE = 'homelab'
 
         // Nombre del Servicio
         SERVICE_NAME = 'api-auth'
