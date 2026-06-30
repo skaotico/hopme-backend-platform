@@ -33,7 +33,7 @@ pipeline {
         PORT = '9090'
 
         // Ruta REAL del microservicio dentro del monorepo
-        APP_PATH = 'apis/api-auth'
+        APP_PATH = 'api-auth'
 
         // Dirección de HashiCorp Vault en el homelab
         VAULT_ADDR = 'http://192.168.1.28:8200'
