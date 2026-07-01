@@ -139,6 +139,21 @@ pipeline {
          * Descarga las variables de entorno desde HashiCorp Vault
          * y crea el archivo .env de forma dinámica.
          **********************************************************/
+         stage('DEBUG FILE TREE') {
+                steps {
+                    sh '''
+                        echo "=== WORKSPACE ==="
+                        pwd
+
+                        echo "=== TREE ==="
+                        ls -R
+
+                        echo "=== SEARCH DOCKERFILE ==="
+                        find . -name Dockerfile
+                    '''
+                }
+            }
+
         stage('Generate .env from Vault') {
 
             steps {
