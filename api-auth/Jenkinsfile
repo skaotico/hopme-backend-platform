@@ -235,23 +235,33 @@ pipeline {
          * Analiza estáticamente el Dockerfile para aplicar mejores 
          * prácticas y optimizar la imagen resultante.
          **********************************************************/
-        stage('Dockerfile Lint (Hadolint)') {
-
+         stage('Dockerfile Lint (Hadolint)') {
             steps {
-
-
                 script { env.FAILED_STAGE = env.STAGE_NAME }
-
                 echo 'Analizando Dockerfile...'
-
                 sh """
-                    docker run --rm \
-                    -v ${WORKSPACE}/api-auth/Dockerfile:/Dockerfile:ro \
-                    hadolint/hadolint /Dockerfile
+                    docker run --rm -i hadolint/hadolint < ${APP_PATH}/Dockerfile
                 """
                 echo 'Dockerfile validado correctamente.'
             }
         }
+        // stage('Dockerfile Lint (Hadolint)') {
+
+        //     steps {
+
+
+        //         script { env.FAILED_STAGE = env.STAGE_NAME }
+
+        //         echo 'Analizando Dockerfile...'
+
+        //         sh """
+        //             docker run --rm \
+        //             -v ${WORKSPACE}/api-auth/Dockerfile:/Dockerfile:ro \
+        //             hadolint/hadolint /Dockerfile
+        //         """
+        //         echo 'Dockerfile validado correctamente.'
+        //     }
+        // }
 
         /**********************************************************
          * LINTING (GOLANGCI-LINT)
