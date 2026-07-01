@@ -244,11 +244,11 @@ pipeline {
 
                 echo 'Analizando Dockerfile...'
 
-                sh """
-                    docker run --rm \\
-                      -i hadolint/hadolint < \${APP_PATH}/Dockerfile
-                """
-
+                    sh """
+                docker run --rm \
+                -v ${WORKSPACE}/${APP_PATH}/Dockerfile:/Dockerfile \
+                hadolint/hadolint hadolint /Dockerfile
+            """
                 echo 'Dockerfile validado correctamente.'
             }
         }
