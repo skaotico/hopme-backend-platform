@@ -278,12 +278,12 @@ Mensaje: ${env.GIT_COMMIT_MESSAGE ?: 'N/A'}
 """
                         echo "Creando tarjeta en Trello..."
                         sh """
-                            curl -s -X POST "https://api.trello.com/1/cards" \
+                            curl -v -X POST "https://api.trello.com/1/cards" \
                               --data-urlencode "name=${cardName}" \
                               --data-urlencode "desc=${cardDesc}" \
                               --data-urlencode "idList=${env.TRELLO_LIST_ID}" \
                               --data-urlencode "key=${TRELLO_KEY}" \
-                              --data-urlencode "token=${TRELLO_TOKEN}" > /dev/null
+                              --data-urlencode "token=${TRELLO_TOKEN}"
                         """
                     }
                 }
