@@ -314,12 +314,12 @@ pipeline {
                     docker rmi ${IMAGE_NAME}-builder:latest || true
 
                     REPO="${env.DOCKER_REGISTRY}/${env.DOCKER_NAMESPACE}/${env.SERVICE_NAME}"
-                    SKIP_LINES=\\$((${env.IMAGES_TO_KEEP} + 1))
+                    SKIP_LINES=\$((${env.IMAGES_TO_KEEP} + 1))
                     
-                    IMAGES_TO_DELETE=\\$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "^\\${REPO}:" | tail -n +\\$SKIP_LINES)
+                    IMAGES_TO_DELETE=\$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "^\${REPO}:" | tail -n +\$SKIP_LINES)
                     
-                    if [ ! -z "\\$IMAGES_TO_DELETE" ]; then
-                        docker rmi -f \\$IMAGES_TO_DELETE || true
+                    if [ ! -z "\$IMAGES_TO_DELETE" ]; then
+                        docker rmi -f \$IMAGES_TO_DELETE || true
                     fi
                 """
             }
