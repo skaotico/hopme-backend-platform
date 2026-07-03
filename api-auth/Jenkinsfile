@@ -262,7 +262,7 @@ pipeline {
             steps {
                 script { env.FAILED_STAGE = env.STAGE_NAME }
                 withCredentials([
-                    string(credentialsId: 'trello-key', variable: 'TRELLO_KEY'),
+                    string(credentialsId: 'TRELLO_KEY', variable: 'TRELLO_KEY'),
                     string(credentialsId: 'trello-token', variable: 'TRELLO_TOKEN')
                 ]) {
                     script {
