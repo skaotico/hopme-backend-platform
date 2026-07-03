@@ -20,6 +20,7 @@ pipeline {
         TELEGRAM_BOT_TOKEN = '8579830914:AAFYLGXKF4hTGddTEz6JWQgfGfS4avhJ-yA'
         TELEGRAM_CHAT_ID = '-5189650330'
 
+
         // Configuración de Despliegue
         IMAGES_TO_KEEP = '2'
         IMAGE_NAME = 'homelab-api-auth'
