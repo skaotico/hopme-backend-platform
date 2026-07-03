@@ -41,6 +41,8 @@
             // Ruta del secreto en Vault (API KV-v2)
             VAULT_SECRET_PATH = 'homelab/data/dev/api-auth'
 
+            VAULT_SECRET_PATH_POSTGRES = 'homelab/data/dev/postgres?version=2'
+
             // Registro Docker Privado
             DOCKER_REGISTRY = '192.168.1.28:5000'
 
@@ -194,9 +196,15 @@
                             script: "curl -s -H 'X-Vault-Token: ${vaultToken}' ${VAULT_ADDR}/v1/${VAULT_SECRET_PATH}",
                             returnStdout: true
                         ).trim()
+
+                        def responsePostgres = sh(
+                            script: "curl -s -H 'X-Vault-Token: ${vaultToken}' ${VAULT_ADDR}/v1/${VAULT_SECRET_PATH_POSTGRES}",
+                            returnStdout: true
+                        ).trim()
                         
                         // Parsear el JSON retornado usando un helper @NonCPS para evitar problemas de serialización
                         def secrets = parseVaultResponse(response)
+                        def secretsPostgres = parseVaultResponse(responsePostgres)
                         
                         if (secrets) {
                             def totalSecrets = secrets.size()
