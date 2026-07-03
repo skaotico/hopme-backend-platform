@@ -16,11 +16,6 @@ pipeline {
     agent any
 
     environment {
-        // Configuración de Notificaciones
-        TELEGRAM_BOT_TOKEN = '8579830914:AAFYLGXKF4hTGddTEz6JWQgfGfS4avhJ-yA'
-        TELEGRAM_CHAT_ID = '-5189650330'
-
-
         // Configuración de Despliegue
         IMAGES_TO_KEEP = '2'
         IMAGE_NAME = 'homelab-api-auth'
@@ -37,6 +32,9 @@ pipeline {
         DOCKER_REGISTRY = '192.168.1.28:5000'
         DOCKER_NAMESPACE = 'homelab'
         SERVICE_NAME = 'api-auth'
+
+        // Configuración de Trello
+        TRELLO_LIST_ID = '6a47d24d6454b81b60baeec5'
     }
 
     stages {
@@ -234,6 +232,7 @@ pipeline {
                     docker rm ${CONTAINER_NAME} || true
                     docker run -d \\
                     --name ${CONTAINER_NAME} \\
+                    --network homelab-net \\
                     -p ${PORT}:${PORT} \\
                     --env-file ${APP_PATH}/.env \\
                     --restart unless-stopped \\
@@ -252,6 +251,42 @@ pipeline {
                 script { env.FAILED_STAGE = env.STAGE_NAME }
                 sleep 10
                 sh "curl --fail --silent --show-error http://localhost:${PORT}/swagger/index.html > /dev/null || echo 'Swagger UI no está disponible, pero se omite fallo duro en Health Check.'"
+            }
+        }
+
+        /**
+         * Stage: Creación de Tarjeta en Trello
+         * Objetivo: Registrar el despliegue en el tablero de desarrollo mediante la API de Trello.
+         */
+        stage('Trello - Create Card') {
+            steps {
+                script { env.FAILED_STAGE = env.STAGE_NAME }
+                withCredentials([
+                    string(credentialsId: 'trello-key', variable: 'TRELLO_KEY'),
+                    string(credentialsId: 'trello-token', variable: 'TRELLO_TOKEN')
+                ]) {
+                    script {
+                        def cardName = "Deploy Dev - ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+                        def cardDesc = """
+Servicio: ${env.JOB_NAME}
+Build: #${env.BUILD_NUMBER}
+Rama: ${env.CURRENT_BRANCH}
+URL: ${env.BUILD_URL}
+Commit: ${env.GIT_SHORT_COMMIT ?: 'N/A'}
+Autor: ${env.GIT_COMMIT_AUTHOR ?: 'N/A'}
+Mensaje: ${env.GIT_COMMIT_MESSAGE ?: 'N/A'}
+"""
+                        echo "Creando tarjeta en Trello..."
+                        sh """
+                            curl -s -X POST "https://api.trello.com/1/cards" \
+                              --data-urlencode "name=${cardName}" \
+                              --data-urlencode "desc=${cardDesc}" \
+                              --data-urlencode "idList=${env.TRELLO_LIST_ID}" \
+                              --data-urlencode "key=${TRELLO_KEY}" \
+                              --data-urlencode "token=${TRELLO_TOKEN}" > /dev/null
+                        """
+                    }
+                }
             }
         }
     }
@@ -353,11 +388,16 @@ def parseVaultResponse(String response) {
  */
 def sendTelegramMessage(String message) {
     catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
-        sh """
-            curl -s -X POST https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage \\
-            --data-urlencode chat_id="${env.TELEGRAM_CHAT_ID}" \\
-            --data-urlencode text="${message}"
-        """
+        withCredentials([
+            string(credentialsId: 'telegram-bot-token', variable: 'TELEGRAM_BOT_TOKEN'),
+            string(credentialsId: 'telegram-chat-id', variable: 'TELEGRAM_CHAT_ID')
+        ]) {
+            sh """
+                curl -s -X POST https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage \\
+                --data-urlencode chat_id="${TELEGRAM_CHAT_ID}" \\
+                --data-urlencode text="${message}"
+            """
+        }
     }
 }
 
@@ -368,11 +408,16 @@ def sendTelegramMessage(String message) {
  */
 def sendTelegramDocument(String filePath, String captionMsg) {
     catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
-        sh """
-            curl -s -X POST https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendDocument \\
-            -F chat_id="${env.TELEGRAM_CHAT_ID}" \\
-            -F document=@"${filePath}" \\
-            -F caption="${captionMsg}"
-        """
+        withCredentials([
+            string(credentialsId: 'telegram-bot-token', variable: 'TELEGRAM_BOT_TOKEN'),
+            string(credentialsId: 'telegram-chat-id', variable: 'TELEGRAM_CHAT_ID')
+        ]) {
+            sh """
+                curl -s -X POST https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument \\
+                -F chat_id="${TELEGRAM_CHAT_ID}" \\
+                -F document=@"${filePath}" \\
+                -F caption="${captionMsg}"
+            """
+        }
     }
 }
