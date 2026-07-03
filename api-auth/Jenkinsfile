@@ -423,7 +423,7 @@
 
                         withCredentials([
                             usernamePassword(
-                                credentialsId: 'docker-registry-auth',
+                                credentialsId: 'docker-registry',
                                 usernameVariable: 'DOCKER_USER',
                                 passwordVariable: 'DOCKER_PASS'
                             )
