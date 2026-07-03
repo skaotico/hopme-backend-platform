@@ -269,7 +269,7 @@ pipeline {
                         def cardName = "Deploy Dev - ${env.JOB_NAME} #${env.BUILD_NUMBER}"
                         def duration = currentBuild.durationString?.replace(" and counting", "") ?: "Calculando..."
                         def cardDesc = """
-### Resumen de Despliegue: ${env.SERVICE_NAME}
+### [${env.SERVICE_NAME}] - Deploy Success
 
 **Métricas del Pipeline (CI/CD)**
 - **Resultado General:** `EXITOSO`
@@ -301,10 +301,11 @@ pipeline {
 - [Documentación Swagger API](http://192.168.1.28:${env.PORT}/swagger/index.html)
 """
                         echo "Creando tarjeta en Trello..."
+                        writeFile file: 'trello_desc.txt', text: cardDesc
                         sh """
                             curl -v -X POST "https://api.trello.com/1/cards" \
                               --data-urlencode "name=${cardName}" \
-                              --data-urlencode "desc=${cardDesc}" \
+                              --data-urlencode desc@trello_desc.txt \
                               --data-urlencode "idList=${env.TRELLO_LIST_ID}" \
                               --data-urlencode "key=${TRELLO_KEY}" \
                               --data-urlencode "token=${TRELLO_TOKEN}"
