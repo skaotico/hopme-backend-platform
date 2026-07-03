@@ -41,7 +41,7 @@
             // Ruta del secreto en Vault (API KV-v2)
             VAULT_SECRET_PATH = 'homelab/data/dev/api-auth'
 
-            VAULT_SECRET_PATH_POSTGRES = 'homelab/data/dev/postgres?version=2'
+            VAULT_SECRET_PATH_POSTGRES = 'homelab/data/dev/postgres'
 
             // Registro Docker Privado
             DOCKER_REGISTRY = '192.168.1.28:5000'
@@ -206,10 +206,10 @@
                         def secrets = parseVaultResponse(response)
                         def secretsPostgres = parseVaultResponse(responsePostgres)
                         
-                        if (secrets) {
-                            def totalSecrets = secrets.size()
+                        if (secrets && secretsPostgres) {
+                            def totalSecrets = secrets.size() + secretsPostgres.size()
                             echo "==================================================="
-                            echo "  CONEXIÓN EXITOSA CON HASHICORP VAULT"
+                            echo "  CONEXIÓN EXITOSA CON HASHICORP VAULT"   
                             echo "  Se han recuperado: ${totalSecrets} secretos correctamente."
                             echo "==================================================="
 
@@ -219,6 +219,10 @@
                             envContent += "# ==============================================================================\n\n"
                             
                             secrets.each { key, value ->
+                                envContent += "${key}=${value}\n"
+                            }
+
+                            secretsPostgres.each { key, value ->
                                 envContent += "${key}=${value}\n"
                             }
                             
