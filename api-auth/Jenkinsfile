@@ -267,14 +267,38 @@ pipeline {
                 ]) {
                     script {
                         def cardName = "Deploy Dev - ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+                        def duration = currentBuild.durationString?.replace(" and counting", "") ?: "Calculando..."
                         def cardDesc = """
-Servicio: ${env.JOB_NAME}
-Build: #${env.BUILD_NUMBER}
-Rama: ${env.CURRENT_BRANCH}
-URL: ${env.BUILD_URL}
-Commit: ${env.GIT_SHORT_COMMIT ?: 'N/A'}
-Autor: ${env.GIT_COMMIT_AUTHOR ?: 'N/A'}
-Mensaje: ${env.GIT_COMMIT_MESSAGE ?: 'N/A'}
+### Resumen de Despliegue: ${env.SERVICE_NAME}
+
+**Métricas del Pipeline (CI/CD)**
+- **Resultado General:** `EXITOSO`
+- **Tiempo de Ejecución:** `${duration}`
+- **Fases Aprobadas:**
+  - [x] Gestión de Secretos (Vault)
+  - [x] Análisis Estático (Dockerfile & GolangCI-Lint)
+  - [x] Pruebas Unitarias y Cobertura
+  - [x] Construcción y Análisis de Vulnerabilidades (Trivy)
+  - [x] Publicación en Registry Privado
+  - [x] Despliegue Local y Health Check
+
+**Artefacto y Contenedor**
+- **Imagen Docker:** `${env.FULL_IMAGE_NAME}`
+- **Comando de Extracción:** `docker pull ${env.FULL_IMAGE_NAME}`
+- **Catálogo del Registry (Tags):** [Ver Imagen en Registry](http://${env.DOCKER_REGISTRY}/v2/${env.DOCKER_NAMESPACE}/${env.SERVICE_NAME}/tags/list)
+- **Puerto Expuesto:** `${env.PORT}`
+- **Entorno:** `Homelab Development`
+
+**Trazabilidad del Código (Git)**
+- **Rama:** `${env.CURRENT_BRANCH}`
+- **Hash de Commit:** `${env.GIT_SHORT_COMMIT ?: 'N/A'}`
+- **Autor:** `${env.GIT_COMMIT_AUTHOR ?: 'N/A'}`
+- **Mensaje del Commit:** 
+> ${env.GIT_COMMIT_MESSAGE ?: 'N/A'}
+
+**Enlaces de Interés**
+- [Consola de Ejecución en Jenkins](${env.BUILD_URL})
+- [Documentación Swagger API](http://192.168.1.28:${env.PORT}/swagger/index.html)
 """
                         echo "Creando tarjeta en Trello..."
                         sh """
