@@ -81,7 +81,7 @@ func Run() {
 	loggingMid := middleware.Logging
 
 	// Router
-	r := router.NewRouter(sensorUC, lecturaUC, alertaUC, loggingMid)
+	r := router.NewRouter(sensorUC, lecturaUC, alertaUC, logger, loggingMid)
 
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,

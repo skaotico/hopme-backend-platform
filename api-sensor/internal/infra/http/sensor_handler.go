@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"c4-sensor/internal/domain/model"
@@ -36,25 +37,32 @@ func HealthHandler() http.Handler {
 // @Failure     400 {object} response.APIResponse
 // @Failure     500 {object} response.APIResponse
 // @Router      /sensores [post]
-func CreateSensorHandler(uc port.SensorUseCase) http.Handler {
+func CreateSensorHandler(uc port.SensorUseCase, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log := logger.With(slog.String("operation", "CreateSensor"))
+		log.InfoContext(r.Context(), "iniciando registro de sensor")
+
 		var req model.CreateSensorRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			log.WarnContext(r.Context(), "body de petición inválido", slog.Any("error", err))
 			response.Failure(w, http.StatusBadRequest, response.ErrCodeInvalidJSON, "Petición inválida", "")
 			return
 		}
 
 		if req.TipoSensorID == uuid.Nil {
+			log.WarnContext(r.Context(), "campo tipo_sensor_id faltante en petición")
 			response.Failure(w, http.StatusBadRequest, "BAD_REQUEST", "El campo tipo_sensor_id es requerido", "")
 			return
 		}
 
 		sensor, err := uc.Create(r.Context(), req)
 		if err != nil {
+			log.ErrorContext(r.Context(), "error al registrar sensor", slog.Any("error", err))
 			response.Failure(w, http.StatusInternalServerError, response.ErrCodeInternal, "Error al registrar sensor", "")
 			return
 		}
 
+		log.InfoContext(r.Context(), "sensor registrado exitosamente", slog.String("sensor_id", sensor.ID.String()))
 		response.Success(w, http.StatusCreated, sensor)
 	})
 }
@@ -70,21 +78,27 @@ func CreateSensorHandler(uc port.SensorUseCase) http.Handler {
 // @Failure     400 {object} response.APIResponse
 // @Failure     404 {object} response.APIResponse
 // @Router      /sensores/{id} [get]
-func GetSensorHandler(uc port.SensorUseCase) http.Handler {
+func GetSensorHandler(uc port.SensorUseCase, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idStr := r.PathValue("id")
+		log := logger.With(slog.String("operation", "GetSensor"), slog.String("sensor_id", idStr))
+		log.DebugContext(r.Context(), "buscando sensor por ID")
+
 		id, err := uuid.Parse(idStr)
 		if err != nil {
+			log.WarnContext(r.Context(), "ID de sensor inválido en path")
 			response.Failure(w, http.StatusBadRequest, response.ErrCodeInvalidID, "ID inválido", "")
 			return
 		}
 
 		sensor, err := uc.GetByID(r.Context(), id)
 		if err != nil {
+			log.WarnContext(r.Context(), "sensor no encontrado", slog.Any("error", err))
 			response.Failure(w, http.StatusNotFound, "NOT_FOUND", "Sensor no encontrado", "")
 			return
 		}
 
+		log.DebugContext(r.Context(), "sensor obtenido exitosamente")
 		response.Success(w, http.StatusOK, sensor)
 	})
 }
@@ -102,14 +116,18 @@ func GetSensorHandler(uc port.SensorUseCase) http.Handler {
 // @Failure     400 {object} response.APIResponse
 // @Failure     500 {object} response.APIResponse
 // @Router      /sensores [get]
-func ListSensoresHandler(uc port.SensorUseCase) http.Handler {
+func ListSensoresHandler(uc port.SensorUseCase, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log := logger.With(slog.String("operation", "ListSensores"))
+		log.DebugContext(r.Context(), "iniciando consulta de lista de sensores con filtros")
+
 		var filter model.SensorFilter
 
 		arbolIDStr := r.URL.Query().Get("arbol_id")
 		if arbolIDStr != "" {
 			arbolID, err := uuid.Parse(arbolIDStr)
 			if err != nil {
+				log.WarnContext(r.Context(), "arbol_id inválido en query", slog.String("arbol_id", arbolIDStr))
 				response.Failure(w, http.StatusBadRequest, response.ErrCodeInvalidID, "arbol_id inválido", "")
 				return
 			}
@@ -120,6 +138,7 @@ func ListSensoresHandler(uc port.SensorUseCase) http.Handler {
 		if estanqueIDStr != "" {
 			estanqueID, err := uuid.Parse(estanqueIDStr)
 			if err != nil {
+				log.WarnContext(r.Context(), "estanque_id inválido en query", slog.String("estanque_id", estanqueIDStr))
 				response.Failure(w, http.StatusBadRequest, response.ErrCodeInvalidID, "estanque_id inválido", "")
 				return
 			}
@@ -135,6 +154,7 @@ func ListSensoresHandler(uc port.SensorUseCase) http.Handler {
 			case "false":
 				activo = false
 			default:
+				log.WarnContext(r.Context(), "valor de parámetro activo inválido", slog.String("activo", activoStr))
 				response.Failure(w, http.StatusBadRequest, "BAD_REQUEST", "activo debe ser true o false", "")
 				return
 			}
@@ -143,10 +163,12 @@ func ListSensoresHandler(uc port.SensorUseCase) http.Handler {
 
 		sensores, err := uc.List(r.Context(), filter)
 		if err != nil {
+			log.ErrorContext(r.Context(), "error al consultar lista de sensores", slog.Any("error", err))
 			response.Failure(w, http.StatusInternalServerError, response.ErrCodeInternal, "Error al listar sensores", "")
 			return
 		}
 
+		log.DebugContext(r.Context(), "consulta de sensores completada", slog.Int("count", len(sensores)))
 		response.Success(w, http.StatusOK, sensores)
 	})
 }
@@ -164,27 +186,34 @@ func ListSensoresHandler(uc port.SensorUseCase) http.Handler {
 // @Failure     400 {object} response.APIResponse
 // @Failure     500 {object} response.APIResponse
 // @Router      /sensores/{id} [put]
-func UpdateSensorHandler(uc port.SensorUseCase) http.Handler {
+func UpdateSensorHandler(uc port.SensorUseCase, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idStr := r.PathValue("id")
+		log := logger.With(slog.String("operation", "UpdateSensor"), slog.String("sensor_id", idStr))
+		log.InfoContext(r.Context(), "iniciando actualización de sensor")
+
 		id, err := uuid.Parse(idStr)
 		if err != nil {
+			log.WarnContext(r.Context(), "ID de sensor inválido en path")
 			response.Failure(w, http.StatusBadRequest, response.ErrCodeInvalidID, "ID inválido", "")
 			return
 		}
 
 		var req model.UpdateSensorRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			log.WarnContext(r.Context(), "body de petición inválido", slog.Any("error", err))
 			response.Failure(w, http.StatusBadRequest, response.ErrCodeInvalidJSON, "Petición inválida", "")
 			return
 		}
 
 		sensor, err := uc.Update(r.Context(), id, req)
 		if err != nil {
+			log.ErrorContext(r.Context(), "error al actualizar sensor en handler", slog.Any("error", err))
 			response.Failure(w, http.StatusInternalServerError, response.ErrCodeInternal, "Error al actualizar sensor", "")
 			return
 		}
 
+		log.InfoContext(r.Context(), "sensor actualizado exitosamente")
 		response.Success(w, http.StatusOK, sensor)
 	})
 }
@@ -200,21 +229,27 @@ func UpdateSensorHandler(uc port.SensorUseCase) http.Handler {
 // @Failure     400 {object} response.APIResponse
 // @Failure     500 {object} response.APIResponse
 // @Router      /sensores/{id} [delete]
-func DeleteSensorHandler(uc port.SensorUseCase) http.Handler {
+func DeleteSensorHandler(uc port.SensorUseCase, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idStr := r.PathValue("id")
+		log := logger.With(slog.String("operation", "DeleteSensor"), slog.String("sensor_id", idStr))
+		log.InfoContext(r.Context(), "iniciando eliminación de sensor")
+
 		id, err := uuid.Parse(idStr)
 		if err != nil {
+			log.WarnContext(r.Context(), "ID de sensor inválido en path")
 			response.Failure(w, http.StatusBadRequest, response.ErrCodeInvalidID, "ID inválido", "")
 			return
 		}
 
 		err = uc.Delete(r.Context(), id)
 		if err != nil {
+			log.ErrorContext(r.Context(), "error al eliminar sensor en handler", slog.Any("error", err))
 			response.Failure(w, http.StatusInternalServerError, response.ErrCodeInternal, "Error al eliminar sensor", "")
 			return
 		}
 
+		log.InfoContext(r.Context(), "sensor eliminado exitosamente")
 		response.Success(w, http.StatusOK, nil)
 	})
 }
@@ -232,27 +267,34 @@ func DeleteSensorHandler(uc port.SensorUseCase) http.Handler {
 // @Failure     400 {object} response.APIResponse
 // @Failure     500 {object} response.APIResponse
 // @Router      /sensores/{id}/lecturas [post]
-func CreateLecturaHandler(uc port.LecturaUseCase) http.Handler {
+func CreateLecturaHandler(uc port.LecturaUseCase, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idStr := r.PathValue("id")
+		log := logger.With(slog.String("operation", "CreateLectura"), slog.String("sensor_id", idStr))
+		log.InfoContext(r.Context(), "registrando nueva lectura de sensor")
+
 		sensorID, err := uuid.Parse(idStr)
 		if err != nil {
+			log.WarnContext(r.Context(), "ID de sensor inválido en path")
 			response.Failure(w, http.StatusBadRequest, response.ErrCodeInvalidID, "ID de sensor inválido", "")
 			return
 		}
 
 		var req model.CreateLecturaRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			log.WarnContext(r.Context(), "body de petición inválido", slog.Any("error", err))
 			response.Failure(w, http.StatusBadRequest, response.ErrCodeInvalidJSON, "Petición inválida", "")
 			return
 		}
 
 		lectura, err := uc.Create(r.Context(), sensorID, req)
 		if err != nil {
+			log.ErrorContext(r.Context(), "error al registrar lectura en handler", slog.Any("error", err))
 			response.Failure(w, http.StatusInternalServerError, response.ErrCodeInternal, "Error al registrar lectura", "")
 			return
 		}
 
+		log.InfoContext(r.Context(), "lectura de sensor registrada exitosamente", slog.String("lectura_id", lectura.ID.String()))
 		response.Success(w, http.StatusCreated, lectura)
 	})
 }
@@ -268,21 +310,27 @@ func CreateLecturaHandler(uc port.LecturaUseCase) http.Handler {
 // @Failure     400 {object} response.APIResponse
 // @Failure     500 {object} response.APIResponse
 // @Router      /sensores/{id}/lecturas [get]
-func ListLecturasHandler(uc port.LecturaUseCase) http.Handler {
+func ListLecturasHandler(uc port.LecturaUseCase, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idStr := r.PathValue("id")
+		log := logger.With(slog.String("operation", "ListLecturas"), slog.String("sensor_id", idStr))
+		log.DebugContext(r.Context(), "consultando lecturas por sensor_id")
+
 		sensorID, err := uuid.Parse(idStr)
 		if err != nil {
+			log.WarnContext(r.Context(), "ID de sensor inválido en path")
 			response.Failure(w, http.StatusBadRequest, response.ErrCodeInvalidID, "ID de sensor inválido", "")
 			return
 		}
 
 		lecturas, err := uc.ListBySensorID(r.Context(), sensorID)
 		if err != nil {
+			log.ErrorContext(r.Context(), "error al obtener lecturas en handler", slog.Any("error", err))
 			response.Failure(w, http.StatusInternalServerError, response.ErrCodeInternal, "Error al listar lecturas", "")
 			return
 		}
 
+		log.DebugContext(r.Context(), "lecturas obtenidas exitosamente", slog.Int("count", len(lecturas)))
 		response.Success(w, http.StatusOK, lecturas)
 	})
 }
@@ -300,32 +348,40 @@ func ListLecturasHandler(uc port.LecturaUseCase) http.Handler {
 // @Failure     400 {object} response.APIResponse
 // @Failure     500 {object} response.APIResponse
 // @Router      /sensores/{id}/alertas [post]
-func CreateAlertaHandler(uc port.AlertaUseCase) http.Handler {
+func CreateAlertaHandler(uc port.AlertaUseCase, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idStr := r.PathValue("id")
+		log := logger.With(slog.String("operation", "CreateAlerta"), slog.String("sensor_id", idStr))
+		log.InfoContext(r.Context(), "creando nueva alerta")
+
 		sensorID, err := uuid.Parse(idStr)
 		if err != nil {
+			log.WarnContext(r.Context(), "ID de sensor inválido en path")
 			response.Failure(w, http.StatusBadRequest, response.ErrCodeInvalidID, "ID de sensor inválido", "")
 			return
 		}
 
 		var req model.CreateAlertaRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			log.WarnContext(r.Context(), "body de petición inválido", slog.Any("error", err))
 			response.Failure(w, http.StatusBadRequest, response.ErrCodeInvalidJSON, "Petición inválida", "")
 			return
 		}
 
 		if req.Tipo == "" {
+			log.WarnContext(r.Context(), "campo tipo faltante en petición de alerta")
 			response.Failure(w, http.StatusBadRequest, "BAD_REQUEST", "El campo tipo es requerido", "")
 			return
 		}
 
 		alerta, err := uc.Create(r.Context(), sensorID, req)
 		if err != nil {
+			log.ErrorContext(r.Context(), "error al registrar alerta en handler", slog.Any("error", err))
 			response.Failure(w, http.StatusInternalServerError, response.ErrCodeInternal, "Error al registrar alerta", "")
 			return
 		}
 
+		log.InfoContext(r.Context(), "alerta registrada exitosamente", slog.String("alerta_id", alerta.ID.String()))
 		response.Success(w, http.StatusCreated, alerta)
 	})
 }
@@ -342,13 +398,17 @@ func CreateAlertaHandler(uc port.AlertaUseCase) http.Handler {
 // @Failure     400 {object} response.APIResponse
 // @Failure     500 {object} response.APIResponse
 // @Router      /alertas [get]
-func ListAlertasHandler(uc port.AlertaUseCase) http.Handler {
+func ListAlertasHandler(uc port.AlertaUseCase, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log := logger.With(slog.String("operation", "ListAlertas"))
+		log.DebugContext(r.Context(), "consultando lista de alertas")
+
 		var sensorIDPtr *uuid.UUID
 		sensorIDStr := r.URL.Query().Get("sensor_id")
 		if sensorIDStr != "" {
 			sensorID, err := uuid.Parse(sensorIDStr)
 			if err != nil {
+				log.WarnContext(r.Context(), "sensor_id inválido en query", slog.String("sensor_id", sensorIDStr))
 				response.Failure(w, http.StatusBadRequest, response.ErrCodeInvalidID, "sensor_id inválido", "")
 				return
 			}
@@ -363,10 +423,12 @@ func ListAlertasHandler(uc port.AlertaUseCase) http.Handler {
 
 		alertas, err := uc.List(r.Context(), sensorIDPtr, estadoPtr)
 		if err != nil {
+			log.ErrorContext(r.Context(), "error al consultar alertas en handler", slog.Any("error", err))
 			response.Failure(w, http.StatusInternalServerError, response.ErrCodeInternal, "Error al listar alertas", "")
 			return
 		}
 
+		log.DebugContext(r.Context(), "lista de alertas obtenida exitosamente", slog.Int("count", len(alertas)))
 		response.Success(w, http.StatusOK, alertas)
 	})
 }
@@ -384,32 +446,40 @@ func ListAlertasHandler(uc port.AlertaUseCase) http.Handler {
 // @Failure     400 {object} response.APIResponse
 // @Failure     500 {object} response.APIResponse
 // @Router      /alertas/{id}/estado [put]
-func UpdateAlertaStatusHandler(uc port.AlertaUseCase) http.Handler {
+func UpdateAlertaStatusHandler(uc port.AlertaUseCase, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idStr := r.PathValue("id")
+		log := logger.With(slog.String("operation", "UpdateAlertaStatus"), slog.String("alerta_id", idStr))
+		log.InfoContext(r.Context(), "actualizando estado de alerta")
+
 		id, err := uuid.Parse(idStr)
 		if err != nil {
+			log.WarnContext(r.Context(), "ID de alerta inválido en path")
 			response.Failure(w, http.StatusBadRequest, response.ErrCodeInvalidID, "ID de alerta inválido", "")
 			return
 		}
 
 		var req model.UpdateAlertaStatusRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			log.WarnContext(r.Context(), "body de petición inválido", slog.Any("error", err))
 			response.Failure(w, http.StatusBadRequest, response.ErrCodeInvalidJSON, "Petición inválida", "")
 			return
 		}
 
 		if req.Estado == "" {
+			log.WarnContext(r.Context(), "campo estado faltante en petición")
 			response.Failure(w, http.StatusBadRequest, "BAD_REQUEST", "El campo estado es requerido", "")
 			return
 		}
 
 		alerta, err := uc.UpdateStatus(r.Context(), id, req)
 		if err != nil {
+			log.ErrorContext(r.Context(), "error al actualizar alerta en handler", slog.Any("error", err))
 			response.Failure(w, http.StatusInternalServerError, response.ErrCodeInternal, "Error al actualizar alerta", "")
 			return
 		}
 
+		log.InfoContext(r.Context(), "estado de alerta actualizado exitosamente")
 		response.Success(w, http.StatusOK, alerta)
 	})
 }
