@@ -1,0 +1,11 @@
+# Logs de ejecucion (no versionar — pueden contener datos sensibles)
+results/*.log
+
+# Metricas JSON — ignorar por defecto, descomentar si quieres versionar historico
+results/metrics_*.json
+
+# Mantener la carpeta lib en git (dependencias locales vendorizadas)
+!lib/
+
+# Mantener el directorio results/ en git (aunque vacio)
+!results/.gitkeep

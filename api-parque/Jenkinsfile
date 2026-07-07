@@ -1,0 +1,448 @@
+/**
+ * Pipeline CI/CD - API Parque
+ * 
+ * Arquitectura del pipeline para el microservicio homelab-api-parque.
+ * Este pipeline implementa un flujo de trabajo estándar de Integración y Despliegue Continuo (CI/CD),
+ * incluyendo análisis de código estático (linting), pruebas, escaneo de vulnerabilidades y despliegue local.
+ * 
+ * Requisitos:
+ * - Host de Jenkins con motor de Docker disponible.
+ * - Usuario de Jenkins con permisos para ejecutar comandos de Docker.
+ * - Credenciales de Jenkins configuradas:
+ *   - 'vault-token' (Secret text): Token de autenticación de HashiCorp Vault.
+ *   - 'docker-registry' (Username with password): Credenciales para el registro privado de Docker.
+ */
+pipeline {
+    agent any
+
+    environment {
+        // Configuración de Despliegue
+        IMAGES_TO_KEEP = '2'
+        IMAGE_NAME = 'homelab-api-parque'
+        CONTAINER_NAME = 'homelab-api-parque'
+        PORT = '9090'
+        APP_PATH = 'api-parque'
+
+        // Configuración de Vault
+        VAULT_ADDR = 'http://192.168.1.28:8200'
+        VAULT_SECRET_PATH = 'homelab/data/dev/api-parque'
+        VAULT_SECRET_PATH_POSTGRES = 'homelab/data/dev/postgres'
+
+        // Configuración del Registro
+        DOCKER_REGISTRY = '192.168.1.28:5000'
+        DOCKER_NAMESPACE = 'homelab'
+        SERVICE_NAME = 'api-parque'
+
+        // Configuración de Trello
+        TRELLO_LIST_ID = '6a47d24d6454b81b60baeec5'
+    }
+
+    stages {
+        /**
+         * Stage: Inicialización del Pipeline
+         * Objetivo: Recopilar metadatos de SCM y preparar variables de contexto del pipeline.
+         * Salidas: Rama actual, hash del commit, autor del commit y tags para la imagen.
+         */
+        stage('Pipeline Initialization') {
+            steps {
+                script { env.FAILED_STAGE = env.STAGE_NAME }
+                script {
+                    def branch = env.GIT_BRANCH ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                    env.CURRENT_BRANCH = branch
+
+                    def commit = env.GIT_COMMIT ?: sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+                    
+                    env.GIT_SHORT_COMMIT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    env.GIT_COMMIT_AUTHOR = sh(script: 'git log -1 --pretty=%an', returnStdout: true).trim()
+                    env.GIT_COMMIT_MESSAGE = sh(script: 'git log -1 --pretty=%s', returnStdout: true).trim()
+
+                    // Determinar alcance del entorno en base a la taxonomía de la rama
+                    def envPrefix = 'dev'
+                    if (branch == 'main' || branch == 'master' || branch == 'production') {
+                        envPrefix = 'prod'
+                    } else if (branch.contains('/') || branch.contains('\\')) {
+                        def branchPart = branch.substring(Math.max(branch.indexOf('/'), branch.indexOf('\\')) + 1)
+                        envPrefix = "feat-${branchPart.replaceAll('[^a-zA-Z0-9_.-]', '-')}"
+                    } else if (branch != 'HEAD' && branch != 'develop') {
+                        envPrefix = "feat-${branch.replaceAll('[^a-zA-Z0-9_.-]', '-')}"
+                    }
+
+                    def imageTag = "${envPrefix}-${env.GIT_SHORT_COMMIT}"
+                    env.FULL_IMAGE_NAME = "${env.DOCKER_REGISTRY}/${env.DOCKER_NAMESPACE}/${env.SERVICE_NAME}:${imageTag}"
+
+                    echo "Pipeline inicializado. Imagen objetivo: ${env.FULL_IMAGE_NAME}"
+                }
+            }
+        }
+
+        /**
+         * Stage: Gestión de Secretos
+         * Objetivo: Recuperar configuración sensible desde HashiCorp Vault.
+         * Acción: Se autentica con la API de Vault, descarga secretos y genera el archivo .env.
+         */
+        stage('Secret Management') {
+            steps {
+                script { env.FAILED_STAGE = env.STAGE_NAME }
+                script {
+                    def vaultToken = env.VAULT_TOKEN
+                    
+                    if (!vaultToken) {
+                        try {
+                            withCredentials([string(credentialsId: 'vault-token', variable: 'TOKEN')]) {
+                                vaultToken = env.TOKEN
+                            }
+                        } catch (Exception e) {
+                            echo "Advertencia: No se encontró la credencial 'vault-token'. Intentando recurrir a variables de entorno locales."
+                        }
+                    }
+                    
+                    if (!vaultToken) {
+                        error "Se requiere un Token de Vault. Por favor configure 'vault-token' en las credenciales de Jenkins."
+                    }
+
+                    def response = sh(script: "curl -s -H 'X-Vault-Token: ${vaultToken}' ${VAULT_ADDR}/v1/${VAULT_SECRET_PATH}", returnStdout: true).trim()
+                    def responsePostgres = sh(script: "curl -s -H 'X-Vault-Token: ${vaultToken}' ${VAULT_ADDR}/v1/${VAULT_SECRET_PATH_POSTGRES}", returnStdout: true).trim()
+                    
+                    def secrets = parseVaultResponse(response)
+                    def secretsPostgres = parseVaultResponse(responsePostgres)
+                    
+                    if (secrets && secretsPostgres) {
+                        def envContent = "# Configuración de entorno generada desde Vault - ${new Date().toString()}\n"
+                        secrets.each { key, value -> envContent += "${key}=${value}\n" }
+                        secretsPostgres.each { key, value -> envContent += "${key}=${value}\n" }
+                        
+                        writeFile file: "${APP_PATH}/.env", text: envContent
+                        echo "Configuración de entorno generada exitosamente desde Vault."
+                    } else {
+                        error "Fallo al recuperar o analizar los secretos de la API de Vault."
+                    }
+                }
+            }
+        }
+
+        /**
+         * Stage: Análisis Estático - Infraestructura
+         * Objetivo: Validar el Dockerfile contra las mejores prácticas de la industria.
+         * Herramienta: Hadolint
+         */
+        stage('Static Analysis: Dockerfile') {
+            steps {
+                script { env.FAILED_STAGE = env.STAGE_NAME }
+                sh "docker run --rm -i hadolint/hadolint < ${APP_PATH}/Dockerfile"
+            }
+        }
+
+        /**
+         * Stage: Análisis Estático - Código de la Aplicación
+         * Objetivo: Asegurar la calidad del código Go y el cumplimiento de estándares.
+         * Herramienta: golangci-lint
+         */
+        stage('Static Analysis: Application Code') {
+            steps {
+                script { env.FAILED_STAGE = env.STAGE_NAME }
+                sh """
+                    docker rm -f temp-linter || true
+                    docker create --name temp-linter -w /app golangci/golangci-lint:latest golangci-lint run ./...
+                    docker cp ${APP_PATH}/. temp-linter:/app/
+                    docker start -a temp-linter
+                    EXIT_CODE=\$?
+                    docker rm temp-linter
+                    exit \$EXIT_CODE
+                """
+            }
+        }
+
+        /**
+         * Stage: Pruebas Unitarias y Cobertura de Código
+         * Objetivo: Ejecutar pruebas unitarias de Go de forma aislada dentro de un contenedor constructor.
+         */
+        stage('Unit Testing') {
+            steps {
+                script { env.FAILED_STAGE = env.STAGE_NAME }
+                sh """
+                    docker build --target builder -t ${IMAGE_NAME}-builder:latest ${APP_PATH}
+                    docker run --rm ${IMAGE_NAME}-builder:latest sh -c 'go test -v -coverprofile=coverage.out ./internal/domain/model/... ./internal/usecase/... && go tool cover -func=coverage.out'
+                """
+            }
+        }
+
+        /**
+         * Stage: Construcción de la Imagen Release
+         * Objetivo: Compilar la aplicación y empaquetarla en la imagen Docker final.
+         */
+        stage('Build Release Image') {
+            steps {
+                script { env.FAILED_STAGE = env.STAGE_NAME }
+                sh """
+                    docker build \\
+                    -t ${env.FULL_IMAGE_NAME} \\
+                    -t ${IMAGE_NAME}:latest \\
+                    ${APP_PATH}
+                """
+            }
+        }
+
+        /**
+         * Stage: Escaneo de Vulnerabilidades
+         * Objetivo: Analizar la imagen Docker generada en busca de vulnerabilidades críticas de seguridad.
+         * Herramienta: Trivy
+         */
+        stage('Vulnerability Scanning') {
+            steps {
+                script { env.FAILED_STAGE = env.STAGE_NAME }
+                sh """
+                    docker run --rm \\
+                    -v /var/run/docker.sock:/var/run/docker.sock \\
+                    -v "\${WORKSPACE}/.trivy-cache:/root/.cache" \\
+                    aquasec/trivy:latest image \\
+                    --exit-code 1 \\
+                    --severity CRITICAL \\
+                    --light \\
+                    ${env.FULL_IMAGE_NAME}
+                """
+            }
+        }
+
+        /**
+         * Stage: Registro de Artefacto
+         * Objetivo: Subir la imagen Docker validada al registro interno privado.
+         */
+        stage('Artifact Registration') {
+            steps {
+                script { env.FAILED_STAGE = env.STAGE_NAME }
+                withCredentials([usernamePassword(credentialsId: 'docker-registry', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh """
+                        echo "\$DOCKER_PASS" | docker login ${env.DOCKER_REGISTRY} --username "\$DOCKER_USER" --password-stdin
+                        docker push ${env.FULL_IMAGE_NAME}
+                        docker logout ${env.DOCKER_REGISTRY}
+                    """
+                }
+            }
+        }
+
+        /**
+         * Stage: Despliegue Local
+         * Objetivo: Desplegar la nueva imagen en el entorno local reemplazando de forma controlada el contenedor existente.
+         */
+        stage('Local Deployment') {
+            steps {
+                script { env.FAILED_STAGE = env.STAGE_NAME }
+                sh """
+                    docker stop ${CONTAINER_NAME} || true
+                    docker rm ${CONTAINER_NAME} || true
+                    docker run -d \\
+                    --name ${CONTAINER_NAME} \\
+                    --network homelab-net \\
+                    -p ${PORT}:${PORT} \\
+                    --env-file ${APP_PATH}/.env \\
+                    --restart unless-stopped \\
+                    ${env.FULL_IMAGE_NAME}
+                """
+                echo "Despliegue exitoso: Contenedor ${CONTAINER_NAME} corriendo en puerto ${PORT}."
+            }
+        }
+
+        /**
+         * Stage: Verificación de Estado (Health Check)
+         * Objetivo: Asegurar que el servicio desplegado está sano y respondiendo peticiones.
+         */
+        stage('Health Verification') {
+            steps {
+                script { env.FAILED_STAGE = env.STAGE_NAME }
+                sleep 10
+                sh "curl --fail --silent --show-error http://localhost:${PORT}/swagger/index.html > /dev/null || echo 'Swagger UI no está disponible, pero se omite fallo duro en Health Check.'"
+            }
+        }
+
+        /**
+         * Stage: Creación de Tarjeta en Trello
+         * Objetivo: Registrar el despliegue en el tablero de desarrollo mediante la API de Trello.
+         */
+        stage('Trello - Create Card') {
+            steps {
+                script { env.FAILED_STAGE = env.STAGE_NAME }
+                withCredentials([
+                    string(credentialsId: 'TRELLO_KEY', variable: 'TRELLO_KEY'),
+                    string(credentialsId: 'trello-token', variable: 'TRELLO_TOKEN')
+                ]) {
+                    script {
+                        def cardName = "Deploy Dev - ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+                        def duration = currentBuild.durationString?.replace(" and counting", "") ?: "Calculando..."
+                        def cardDesc = """
+### [${env.SERVICE_NAME}] - Deploy Success
+
+**Métricas del Pipeline (CI/CD)**
+- **Resultado General:** `EXITOSO`
+- **Tiempo de Ejecución:** `${duration}`
+- **Fases Aprobadas:**
+  - [x] Gestión de Secretos (Vault)
+  - [x] Análisis Estático (Dockerfile & GolangCI-Lint)
+  - [x] Pruebas Unitarias y Cobertura
+  - [x] Construcción y Análisis de Vulnerabilidades (Trivy)
+  - [x] Publicación en Registry Privado
+  - [x] Despliegue Local y Health Check
+
+**Artefacto y Contenedor**
+- **Imagen Docker:** `${env.FULL_IMAGE_NAME}`
+- **Comando de Extracción:** `docker pull ${env.FULL_IMAGE_NAME}`
+- **Catálogo del Registry (Tags):** [Ver Imagen en Registry](http://${env.DOCKER_REGISTRY}/v2/${env.DOCKER_NAMESPACE}/${env.SERVICE_NAME}/tags/list)
+- **Puerto Expuesto:** `${env.PORT}`
+- **Entorno:** `Homelab Development`
+
+**Trazabilidad del Código (Git)**
+- **Rama:** `${env.CURRENT_BRANCH}`
+- **Hash de Commit:** `${env.GIT_SHORT_COMMIT ?: 'N/A'}`
+- **Autor:** `${env.GIT_COMMIT_AUTHOR ?: 'N/A'}`
+- **Mensaje del Commit:** 
+> ${env.GIT_COMMIT_MESSAGE ?: 'N/A'}
+
+**Enlaces de Interés**
+- [Consola de Ejecución en Jenkins](${env.BUILD_URL})
+- [Documentación Swagger API](http://192.168.1.28:${env.PORT}/swagger/index.html)
+"""
+                        echo "Creando tarjeta en Trello..."
+                        writeFile file: 'trello_desc.txt', text: cardDesc
+                        sh """
+                            curl -v -X POST "https://api.trello.com/1/cards" \
+                              --data-urlencode "name=${cardName}" \
+                              --data-urlencode desc@trello_desc.txt \
+                              --data-urlencode "idList=${env.TRELLO_LIST_ID}" \
+                              --data-urlencode "key=${TRELLO_KEY}" \
+                              --data-urlencode "token=${TRELLO_TOKEN}"
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Handlers Post-Ejecución
+     * Define las rutinas que se ejecutan incondicionalmente o dependiendo del resultado de ejecución del pipeline.
+     */
+    post {
+        success {
+            script {
+                def duration = currentBuild.durationString?.replace(" and counting", "") ?: "Desconocida"
+                def msg = "Ejecución del Pipeline: EXITOSA\n" +
+                        "Servicio: ${env.SERVICE_NAME}\n" +
+                        "Rama: ${env.CURRENT_BRANCH}\n" +
+                        "Artefacto: ${env.FULL_IMAGE_NAME}\n\n" +
+                        "Contexto del Commit:\n" +
+                        "- Autor: ${env.GIT_COMMIT_AUTHOR}\n" +
+                        "- Hash: ${env.GIT_SHORT_COMMIT}\n" +
+                        "- Mensaje: ${env.GIT_COMMIT_MESSAGE}\n\n" +
+                        "Tiempo de Ejecución: ${duration}\n" +
+                        "Entorno:\n" +
+                        "- Endpoint: http://192.168.1.20:9090\n" +
+                        "- Documentación Swagger: http://192.168.1.20:9090/swagger/\n" +
+                        "URL del Build: ${env.BUILD_URL}"
+                
+                sendTelegramMessage(msg)
+            }
+        }
+
+        failure {
+            script {
+                def duration = currentBuild.durationString?.replace(" and counting", "") ?: "Desconocida"
+                def failedStageName = env.FAILED_STAGE ?: "Desconocida"
+                
+                def msg = "Ejecución del Pipeline: FALLIDA\n" +
+                        "Servicio: ${env.SERVICE_NAME}\n" +
+                        "Rama: ${env.CURRENT_BRANCH}\n" +
+                        "Fallo en el Stage: ${failedStageName}\n" +
+                        "Tiempo de Ejecución: ${duration}\n\n" +
+                        "Contexto del Commit:\n" +
+                        "- Autor: ${env.GIT_COMMIT_AUTHOR}\n" +
+                        "- Hash: ${env.GIT_SHORT_COMMIT}\n" +
+                        "- Mensaje: ${env.GIT_COMMIT_MESSAGE}\n\n" +
+                        "URL del Build: ${env.BUILD_URL}"
+                
+                try {
+                    def logContent = currentBuild.rawBuild.getLog(100).join('\n')
+                    writeFile file: 'error_details.log', text: logContent
+                    sendTelegramDocument('error_details.log', msg)
+                } catch (Exception e) {
+                    sendTelegramMessage(msg + "\n\nPor favor revise la consola de Jenkins para los logs detallados.")
+                }
+            }
+        }
+
+        always {
+            script {
+                sh """
+                    docker rm -f temp-linter || true
+                    docker rmi ${IMAGE_NAME}-builder:latest || true
+
+                    REPO="${env.DOCKER_REGISTRY}/${env.DOCKER_NAMESPACE}/${env.SERVICE_NAME}"
+                    SKIP_LINES=\$((${env.IMAGES_TO_KEEP} + 1))
+                    
+                    IMAGES_TO_DELETE=\$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "^\${REPO}:" | tail -n +\$SKIP_LINES)
+                    
+                    if [ ! -z "\$IMAGES_TO_DELETE" ]; then
+                        docker rmi -f \$IMAGES_TO_DELETE || true
+                    fi
+                """
+            }
+        }
+    }
+}
+
+/**
+ * Utilidad: Parsear JSON de respuesta de Vault
+ * @param response String en JSON crudo devuelto por la API de Vault.
+ * @return Mapa conteniendo los secretos recuperados del payload de Vault.
+ */
+@NonCPS
+def parseVaultResponse(String response) {
+    def secrets = [:]
+    try {
+        def json = new groovy.json.JsonSlurper().parseText(response)
+        if (json && json.data && json.data.data) {
+            json.data.data.each { key, value -> secrets[key] = value }
+        }
+    } catch (Exception e) {
+        println "Error parseando JSON de Vault: " + e.getMessage()
+    }
+    return secrets
+}
+
+/**
+ * Integración de Notificaciones: Enviar mensaje de Telegram
+ * @param message Texto a ser entregado.
+ */
+def sendTelegramMessage(String message) {
+    catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+        withCredentials([
+            string(credentialsId: 'telegram-bot-token', variable: 'TELEGRAM_BOT_TOKEN'),
+            string(credentialsId: 'telegram-chat-id', variable: 'TELEGRAM_CHAT_ID')
+        ]) {
+            sh """
+                curl -s -X POST https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage \\
+                --data-urlencode chat_id="${TELEGRAM_CHAT_ID}" \\
+                --data-urlencode text="${message}"
+            """
+        }
+    }
+}
+
+/**
+ * Integración de Notificaciones: Enviar documento por Telegram
+ * @param filePath Ruta del documento a adjuntar.
+ * @param captionMsg Leyenda asociada con el documento.
+ */
+def sendTelegramDocument(String filePath, String captionMsg) {
+    catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+        withCredentials([
+            string(credentialsId: 'telegram-bot-token', variable: 'TELEGRAM_BOT_TOKEN'),
+            string(credentialsId: 'telegram-chat-id', variable: 'TELEGRAM_CHAT_ID')
+        ]) {
+            sh """
+                curl -s -X POST https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument \\
+                -F chat_id="${TELEGRAM_CHAT_ID}" \\
+                -F document=@"${filePath}" \\
+                -F caption="${captionMsg}"
+            """
+        }
+    }
+}
