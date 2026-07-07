@@ -1,5 +1,5 @@
 import { API_ZONA_URL, fetchWithAuth } from "./api";
-import { Zona, CreateZonaRequest } from "../dto/zona.dto";
+import { Zona, CreateZonaRequest, UpdateZonaRequest } from "../dto/zona.dto";
 
 export class ZonaService {
   /**
@@ -13,8 +13,9 @@ export class ZonaService {
       if (!response.ok) {
         throw new Error("Error al obtener zonas");
       }
-      const data = await response.json();
-      return data;
+      const envelope = await response.json();
+      console.log("Envelope:", envelope.data);
+      return envelope.data ?? envelope;
     } catch (error) {
       console.error("Error fetching zonas:", error);
       throw error;
@@ -26,23 +27,59 @@ export class ZonaService {
    */
   static async createZona(data: CreateZonaRequest): Promise<Zona> {
     try {
-      console.log("Creating zona with data:", data);
       const response = await fetchWithAuth(`${API_ZONA_URL}/zonas`, {
         method: "POST",
         body: JSON.stringify(data),
       });
-      console.log(
-        `curl -X POST ${API_ZONA_URL}/zonas -H "Content-Type: application/json" -d "${JSON.stringify(data)}"`,
-      );
-      console.log("Response from creating zona:", response);
 
       if (!response.ok) {
         throw new Error("Error al crear la zona");
       }
 
-      return await response.json();
+      const envelope = await response.json();
+      return envelope.data ?? envelope;
     } catch (error) {
       console.error("Error creating zona:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Actualiza una zona existente por su ID.
+   */
+  static async updateZona(id: string, data: UpdateZonaRequest): Promise<Zona> {
+    try {
+      const response = await fetchWithAuth(`${API_ZONA_URL}/zonas/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al actualizar la zona");
+      }
+
+      const envelope = await response.json();
+      return envelope.data ?? envelope;
+    } catch (error) {
+      console.error("Error updating zona:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Elimina una zona por su ID.
+   */
+  static async deleteZona(id: string): Promise<void> {
+    try {
+      const response = await fetchWithAuth(`${API_ZONA_URL}/zonas/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al eliminar la zona");
+      }
+    } catch (error) {
+      console.error("Error deleting zona:", error);
       throw error;
     }
   }

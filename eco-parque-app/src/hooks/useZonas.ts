@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import { Zona, CreateZonaRequest } from '../dto/zona.dto';
-import { ZonaService } from '../services/zona.service';
+import { useState, useCallback } from "react";
+import { Zona, CreateZonaRequest, UpdateZonaRequest } from "../dto/zona.dto";
+import { ZonaService } from "../services/zona.service";
 
 export function useZonas(parqueId: string | null) {
   const [zonas, setZonas] = useState<Zona[]>([]);
@@ -9,28 +9,53 @@ export function useZonas(parqueId: string | null) {
 
   const fetchZonas = useCallback(async () => {
     if (!parqueId) return;
-    
+
     setLoading(true);
     setError(null);
     try {
       const data = await ZonaService.getZonasByParqueId(parqueId);
+      console.log("estas son las zonas a mostrar:", data);
       setZonas(data || []);
     } catch (err) {
-      setError('No se pudieron cargar las zonas. Inténtalo más tarde.');
+      setError("No se pudieron cargar las zonas. Inténtalo más tarde.");
     } finally {
       setLoading(false);
     }
   }, [parqueId]);
 
-  const addZona = async (data: Omit<CreateZonaRequest, 'ecoparque_id'>) => {
-    if (!parqueId) return { success: false, error: 'No hay parque seleccionado' };
-    
+  const addZona = async (data: Omit<CreateZonaRequest, "ecoparque_id">) => {
+    if (!parqueId)
+      return { success: false, error: "No hay parque seleccionado" };
+
     try {
-      const newZona = await ZonaService.createZona({ ...data, ecoparque_id: parqueId });
-      setZonas(prev => [...prev, newZona]);
+      const newZona = await ZonaService.createZona({
+        ...data,
+        ecoparque_id: parqueId,
+      });
+      setZonas((prev) => [...prev, newZona]);
       return { success: true };
     } catch (err) {
-      return { success: false, error: 'No se pudo crear la zona.' };
+      return { success: false, error: "No se pudo crear la zona." };
+    }
+  };
+
+  const updateZona = async (id: string, data: UpdateZonaRequest) => {
+    try {
+      const updated = await ZonaService.updateZona(id, data);
+      setZonas((prev) => prev.map((z) => (z.id === id ? updated : z)));
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: "No se pudo actualizar la zona." };
+    }
+  };
+
+  const deleteZona = async (id: string) => {
+    try {
+      await ZonaService.deleteZona(id);
+      setZonas((prev) => prev.filter((z) => z.id !== id));
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: "No se pudo eliminar la zona." };
     }
   };
 
@@ -40,5 +65,7 @@ export function useZonas(parqueId: string | null) {
     error,
     refresh: fetchZonas,
     addZona,
+    updateZona,
+    deleteZona,
   };
 }

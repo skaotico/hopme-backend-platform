@@ -7,19 +7,22 @@ import { ParqueListScreen } from './src/components/ParqueListScreen';
 import { ParqueAddScreen } from './src/components/ParqueAddScreen';
 import { ZonaListScreen } from './src/components/ZonaListScreen';
 import { ZonaAddScreen } from './src/components/ZonaAddScreen';
+import { ZonaEditScreen } from './src/components/ZonaEditScreen';
 import { ArbolListScreen } from './src/components/ArbolListScreen';
 import { ArbolAddScreen } from './src/components/ArbolAddScreen';
+import { Zona } from './src/dto/zona.dto';
 
-type ScreenName = 'ParqueList' | 'ParqueAdd' | 'ZonaList' | 'ZonaAdd' | 'ArbolList' | 'ArbolAdd';
+type ScreenName = 'ParqueList' | 'ParqueAdd' | 'ZonaList' | 'ZonaAdd' | 'ZonaEdit' | 'ArbolList' | 'ArbolAdd';
 
 export default function App() {
   const { user, loading, login, register, logout } = useAuth();
   const [isRegistering, setIsRegistering] = useState(false);
-  
+
   // Custom router state
   const [currentScreen, setCurrentScreen] = useState<ScreenName>('ParqueList');
   const [selectedParqueId, setSelectedParqueId] = useState<string | null>(null);
   const [selectedZonaId, setSelectedZonaId] = useState<string | null>(null);
+  const [zonaToEdit, setZonaToEdit] = useState<Zona | null>(null);
 
   if (loading) {
     return (
@@ -33,9 +36,9 @@ export default function App() {
     switch (currentScreen) {
       case 'ParqueAdd':
         return (
-          <ParqueAddScreen 
-            onBack={() => setCurrentScreen('ParqueList')} 
-            onSuccess={() => setCurrentScreen('ParqueList')} 
+          <ParqueAddScreen
+            onBack={() => setCurrentScreen('ParqueList')}
+            onSuccess={() => setCurrentScreen('ParqueList')}
           />
         );
       case 'ZonaList':
@@ -44,13 +47,17 @@ export default function App() {
           return null;
         }
         return (
-          <ZonaListScreen 
-            parqueId={selectedParqueId} 
-            onBack={() => setCurrentScreen('ParqueList')} 
-            onAdd={() => setCurrentScreen('ZonaAdd')} 
+          <ZonaListScreen
+            parqueId={selectedParqueId}
+            onBack={() => setCurrentScreen('ParqueList')}
+            onAdd={() => setCurrentScreen('ZonaAdd')}
             onSelect={(zonaId) => {
               setSelectedZonaId(zonaId);
               setCurrentScreen('ArbolList');
+            }}
+            onEdit={(zona) => {
+              setZonaToEdit(zona);
+              setCurrentScreen('ZonaEdit');
             }}
           />
         );
@@ -60,10 +67,26 @@ export default function App() {
           return null;
         }
         return (
-          <ZonaAddScreen 
-            parqueId={selectedParqueId} 
-            onBack={() => setCurrentScreen('ZonaList')} 
-            onSuccess={() => setCurrentScreen('ZonaList')} 
+          <ZonaAddScreen
+            parqueId={selectedParqueId}
+            onBack={() => setCurrentScreen('ZonaList')}
+            onSuccess={() => setCurrentScreen('ZonaList')}
+          />
+        );
+      case 'ZonaEdit':
+        if (!selectedParqueId || !zonaToEdit) {
+          setCurrentScreen('ZonaList');
+          return null;
+        }
+        return (
+          <ZonaEditScreen
+            parqueId={selectedParqueId}
+            zona={zonaToEdit}
+            onBack={() => setCurrentScreen('ZonaList')}
+            onSuccess={() => {
+              setZonaToEdit(null);
+              setCurrentScreen('ZonaList');
+            }}
           />
         );
       case 'ArbolList':
@@ -72,10 +95,10 @@ export default function App() {
           return null;
         }
         return (
-          <ArbolListScreen 
-            zonaId={selectedZonaId} 
-            onBack={() => setCurrentScreen('ZonaList')} 
-            onAdd={() => setCurrentScreen('ArbolAdd')} 
+          <ArbolListScreen
+            zonaId={selectedZonaId}
+            onBack={() => setCurrentScreen('ZonaList')}
+            onAdd={() => setCurrentScreen('ArbolAdd')}
           />
         );
       case 'ArbolAdd':
@@ -84,17 +107,17 @@ export default function App() {
           return null;
         }
         return (
-          <ArbolAddScreen 
-            zonaId={selectedZonaId} 
-            onBack={() => setCurrentScreen('ArbolList')} 
-            onSuccess={() => setCurrentScreen('ArbolList')} 
+          <ArbolAddScreen
+            zonaId={selectedZonaId}
+            onBack={() => setCurrentScreen('ArbolList')}
+            onSuccess={() => setCurrentScreen('ArbolList')}
           />
         );
       case 'ParqueList':
       default:
         return (
-          <ParqueListScreen 
-            onLogout={logout} 
+          <ParqueListScreen
+            onLogout={logout}
             onAdd={() => setCurrentScreen('ParqueAdd')}
             onSelect={(id) => {
               setSelectedParqueId(id);
@@ -110,18 +133,18 @@ export default function App() {
       {user ? (
         renderAuthenticatedApp()
       ) : isRegistering ? (
-        <RegisterScreen 
-          onRegisterSuccess={() => setIsRegistering(false)} 
-          onGoToLogin={() => setIsRegistering(false)} 
-          register={register} 
-          loading={loading} 
+        <RegisterScreen
+          onRegisterSuccess={() => setIsRegistering(false)}
+          onGoToLogin={() => setIsRegistering(false)}
+          register={register}
+          loading={loading}
         />
       ) : (
-        <LoginScreen 
-          onLoginSuccess={() => {}} 
+        <LoginScreen
+          onLoginSuccess={() => {}}
           onGoToRegister={() => setIsRegistering(true)}
-          login={login} 
-          loading={loading} 
+          login={login}
+          loading={loading}
         />
       )}
     </View>

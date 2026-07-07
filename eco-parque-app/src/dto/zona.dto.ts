@@ -14,3 +14,9 @@ export interface CreateZonaRequest {
   descripcion?: string;
   area_m2?: number;
 }
+
+export interface UpdateZonaRequest {
+  nombre?: string;
+  descripcion?: string;
+  area_m2?: number;
+}

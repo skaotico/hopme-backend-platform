@@ -1,7 +1,17 @@
 import React, { useEffect } from 'react';
-import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl, StatusBar } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  ActivityIndicator,
+  TouchableOpacity,
+  RefreshControl,
+  StatusBar,
+  Alert,
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useZonas } from '../hooks/useZonas';
+import { Zona } from '../dto/zona.dto';
 import { styles } from './ZonaListScreen.styles';
 
 interface ZonaListScreenProps {
@@ -9,14 +19,35 @@ interface ZonaListScreenProps {
   onBack: () => void;
   onAdd: () => void;
   onSelect: (id: string) => void;
+  onEdit: (zona: Zona) => void;
 }
 
-export function ZonaListScreen({ parqueId, onBack, onAdd, onSelect }: ZonaListScreenProps) {
-  const { zonas, loading, error, refresh } = useZonas(parqueId);
+export function ZonaListScreen({ parqueId, onBack, onAdd, onSelect, onEdit }: ZonaListScreenProps) {
+  const { zonas, loading, error, refresh, deleteZona } = useZonas(parqueId);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  const handleDelete = (zona: Zona) => {
+    Alert.alert(
+      'Eliminar Zona',
+      `¿Estás seguro de que deseas eliminar "${zona.nombre}"? Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            const result = await deleteZona(zona.id);
+            if (!result.success) {
+              Alert.alert('Error', result.error || 'No se pudo eliminar la zona.');
+            }
+          },
+        },
+      ],
+    );
+  };
 
   if (loading && zonas.length === 0) {
     return (
@@ -35,7 +66,7 @@ export function ZonaListScreen({ parqueId, onBack, onAdd, onSelect }: ZonaListSc
         </TouchableOpacity>
         <Text style={styles.title}>Zonas del Parque</Text>
       </View>
-      
+
       {error && (
         <View style={styles.errorContainer}>
           <MaterialIcons name="error-outline" size={20} color="#F43F5E" />
@@ -52,7 +83,7 @@ export function ZonaListScreen({ parqueId, onBack, onAdd, onSelect }: ZonaListSc
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconCircle}>
-               <MaterialIcons name="map" size={48} color="#3B82F6" />
+              <MaterialIcons name="map" size={48} color="#3B82F6" />
             </View>
             <Text style={styles.emptyText}>Este parque no tiene zonas</Text>
             <Text style={styles.emptySubtext}>Crea una zona para subdividir el parque.</Text>
@@ -71,6 +102,24 @@ export function ZonaListScreen({ parqueId, onBack, onAdd, onSelect }: ZonaListSc
             <Text style={styles.cardSubtitle}>
               <MaterialIcons name="description" size={14} color="#8FA3A9" /> {item.descripcion || 'Sin descripción'}
             </Text>
+            <View style={styles.cardActions}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => onEdit(item)}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="edit" size={18} color="#3B82F6" />
+                <Text style={styles.actionButtonText}>Editar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.actionButtonDanger]}
+                onPress={() => handleDelete(item)}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="delete-outline" size={18} color="#F43F5E" />
+                <Text style={[styles.actionButtonText, styles.actionButtonTextDanger]}>Eliminar</Text>
+              </TouchableOpacity>
+            </View>
           </TouchableOpacity>
         )}
       />

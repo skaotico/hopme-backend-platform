@@ -1,0 +1,1038 @@
+basePath: /
+definitions:
+  model.CreateEspecieArbolRequest:
+    properties:
+      activo:
+        type: boolean
+      descripcion:
+        type: string
+      familia:
+        type: string
+      nombre_cientifico:
+        type: string
+      nombre_comun:
+        type: string
+    type: object
+  model.CreateEstadoAguaRequest:
+    properties:
+      codigo:
+        type: string
+      nombre:
+        type: string
+    type: object
+  model.CreateEstadoArbolRequest:
+    properties:
+      codigo:
+        type: string
+      descripcion:
+        type: string
+      nombre:
+        type: string
+    type: object
+  model.CreateEstadoEstanqueRequest:
+    properties:
+      codigo:
+        type: string
+      nombre:
+        type: string
+    type: object
+  model.CreateTipoSensorRequest:
+    properties:
+      codigo:
+        type: string
+      descripcion:
+        type: string
+      nombre:
+        type: string
+      unidad_medida:
+        type: string
+    type: object
+  model.EspecieArbol:
+    properties:
+      activo:
+        type: boolean
+      descripcion:
+        type: string
+      familia:
+        type: string
+      id:
+        type: string
+      nombre_cientifico:
+        type: string
+      nombre_comun:
+        type: string
+    type: object
+  model.EstadoAgua:
+    properties:
+      codigo:
+        type: string
+      id:
+        type: string
+      nombre:
+        type: string
+    type: object
+  model.EstadoArbol:
+    properties:
+      codigo:
+        type: string
+      descripcion:
+        type: string
+      id:
+        type: string
+      nombre:
+        type: string
+    type: object
+  model.EstadoEstanque:
+    properties:
+      codigo:
+        type: string
+      id:
+        type: string
+      nombre:
+        type: string
+    type: object
+  model.TipoSensor:
+    properties:
+      codigo:
+        type: string
+      descripcion:
+        type: string
+      id:
+        type: string
+      nombre:
+        type: string
+      unidad_medida:
+        type: string
+    type: object
+  model.UpdateEspecieArbolRequest:
+    properties:
+      activo:
+        type: boolean
+      descripcion:
+        type: string
+      familia:
+        type: string
+      nombre_cientifico:
+        type: string
+      nombre_comun:
+        type: string
+    type: object
+  model.UpdateEstadoAguaRequest:
+    properties:
+      codigo:
+        type: string
+      nombre:
+        type: string
+    type: object
+  model.UpdateEstadoArbolRequest:
+    properties:
+      codigo:
+        type: string
+      descripcion:
+        type: string
+      nombre:
+        type: string
+    type: object
+  model.UpdateEstadoEstanqueRequest:
+    properties:
+      codigo:
+        type: string
+      nombre:
+        type: string
+    type: object
+  model.UpdateTipoSensorRequest:
+    properties:
+      codigo:
+        type: string
+      descripcion:
+        type: string
+      nombre:
+        type: string
+      unidad_medida:
+        type: string
+    type: object
+  response.APIError:
+    properties:
+      code:
+        type: string
+      details:
+        type: string
+      message:
+        type: string
+    type: object
+  response.APIResponse:
+    properties:
+      data: {}
+      error:
+        $ref: '#/definitions/response.APIError'
+      success:
+        type: boolean
+    type: object
+host: localhost:9094
+info:
+  contact: {}
+  description: Servicio de Catálogo de Homelab Collector Platform.
+  title: Homelab Collector Platform - Catalogo API
+  version: "1.0"
+paths:
+  /api/v1/catalogo/especies:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene la lista de todas las especies de árbol registradas
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.EspecieArbol'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Listar especies de árbol
+      tags:
+      - Especies de Árbol
+    post:
+      consumes:
+      - application/json
+      description: Crea una nueva especie de árbol en el catálogo
+      parameters:
+      - description: Datos para crear la especie
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateEspecieArbolRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.EspecieArbol'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Crear especie de árbol
+      tags:
+      - Especies de Árbol
+  /api/v1/catalogo/especies/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina una especie de árbol del catálogo
+      parameters:
+      - description: ID de la especie (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Eliminar especie de árbol
+      tags:
+      - Especies de Árbol
+    get:
+      consumes:
+      - application/json
+      description: Obtiene los detalles de una especie de árbol por su UUID
+      parameters:
+      - description: ID de la especie (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.EspecieArbol'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Obtener especie de árbol por ID
+      tags:
+      - Especies de Árbol
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de una especie de árbol existente
+      parameters:
+      - description: ID de la especie (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Datos a actualizar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateEspecieArbolRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.EspecieArbol'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Actualizar especie de árbol
+      tags:
+      - Especies de Árbol
+  /api/v1/catalogo/estados-agua:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene la lista de todos los estados de agua registrados
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.EstadoAgua'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Listar estados de agua
+      tags:
+      - Estados de Agua
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo estado de calidad de agua en el catálogo
+      parameters:
+      - description: Datos para crear el estado de agua
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateEstadoAguaRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.EstadoAgua'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Crear estado de agua
+      tags:
+      - Estados de Agua
+  /api/v1/catalogo/estados-agua/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un estado de agua del catálogo
+      parameters:
+      - description: ID del estado (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Eliminar estado de agua
+      tags:
+      - Estados de Agua
+    get:
+      consumes:
+      - application/json
+      description: Obtiene los detalles de un estado de agua por su UUID
+      parameters:
+      - description: ID del estado (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.EstadoAgua'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Obtener estado de agua por ID
+      tags:
+      - Estados de Agua
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un estado de agua existente
+      parameters:
+      - description: ID del estado (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Datos a actualizar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateEstadoAguaRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.EstadoAgua'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Actualizar estado de agua
+      tags:
+      - Estados de Agua
+  /api/v1/catalogo/estados-arbol:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene la lista de todos los estados de árbol registrados
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.EstadoArbol'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Listar estados de árbol
+      tags:
+      - Estados de Árbol
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo estado de salud/situación del árbol en el catálogo
+      parameters:
+      - description: Datos para crear el estado de árbol
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateEstadoArbolRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.EstadoArbol'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Crear estado de árbol
+      tags:
+      - Estados de Árbol
+  /api/v1/catalogo/estados-arbol/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un estado de árbol del catálogo
+      parameters:
+      - description: ID del estado (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Eliminar estado de árbol
+      tags:
+      - Estados de Árbol
+    get:
+      consumes:
+      - application/json
+      description: Obtiene los detalles de un estado de árbol por su UUID
+      parameters:
+      - description: ID del estado (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.EstadoArbol'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Obtener estado de árbol por ID
+      tags:
+      - Estados de Árbol
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un estado de árbol existente
+      parameters:
+      - description: ID del estado (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Datos a actualizar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateEstadoArbolRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.EstadoArbol'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Actualizar estado de árbol
+      tags:
+      - Estados de Árbol
+  /api/v1/catalogo/estados-estanque:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene la lista de todos los estados de estanque registrados
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.EstadoEstanque'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Listar estados de estanque
+      tags:
+      - Estados de Estanque
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo estado de estanque en el catálogo
+      parameters:
+      - description: Datos para crear el estado de estanque
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateEstadoEstanqueRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.EstadoEstanque'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Crear estado de estanque
+      tags:
+      - Estados de Estanque
+  /api/v1/catalogo/estados-estanque/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un estado de estanque del catálogo
+      parameters:
+      - description: ID del estado (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Eliminar estado de estanque
+      tags:
+      - Estados de Estanque
+    get:
+      consumes:
+      - application/json
+      description: Obtiene los detalles de un estado de estanque por su UUID
+      parameters:
+      - description: ID del estado (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.EstadoEstanque'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Obtener estado de estanque por ID
+      tags:
+      - Estados de Estanque
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un estado de estanque existente
+      parameters:
+      - description: ID del estado (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Datos a actualizar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateEstadoEstanqueRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.EstadoEstanque'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Actualizar estado de estanque
+      tags:
+      - Estados de Estanque
+  /api/v1/catalogo/tipos-sensor:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene la lista de todos los tipos de sensor registrados
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.TipoSensor'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Listar tipos de sensor
+      tags:
+      - Tipos de Sensor
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo tipo de sensor en el catálogo
+      parameters:
+      - description: Datos para crear el tipo de sensor
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateTipoSensorRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.TipoSensor'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Crear tipo de sensor
+      tags:
+      - Tipos de Sensor
+  /api/v1/catalogo/tipos-sensor/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un tipo de sensor del catálogo
+      parameters:
+      - description: ID del tipo de sensor (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Eliminar tipo de sensor
+      tags:
+      - Tipos de Sensor
+    get:
+      consumes:
+      - application/json
+      description: Obtiene los detalles de un tipo de sensor por su UUID
+      parameters:
+      - description: ID del tipo de sensor (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.TipoSensor'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Obtener tipo de sensor por ID
+      tags:
+      - Tipos de Sensor
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un tipo de sensor existente
+      parameters:
+      - description: ID del tipo de sensor (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Datos a actualizar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateTipoSensorRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.TipoSensor'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Actualizar tipo de sensor
+      tags:
+      - Tipos de Sensor
+swagger: "2.0"

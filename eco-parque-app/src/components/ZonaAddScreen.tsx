@@ -4,6 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useZonas } from '../hooks/useZonas';
 import { styles } from './ZonaAddScreen.styles';
 
+
 interface ZonaAddScreenProps {
   parqueId: string;
   onBack: () => void;

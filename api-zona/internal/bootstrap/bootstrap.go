@@ -58,8 +58,8 @@ func Run() {
 	}()
 
 	// Dependencias
-	zonaRepo := postgres.NewZonaRepository(db)
-	zonaUC := usecase.NewZonaUseCase(zonaRepo)
+	zonaRepo := postgres.NewZonaRepository(db, logger)
+	zonaUC := usecase.NewZonaUseCase(zonaRepo, logger)
 
 	// Middlewares
 	loggingMid := middleware.Logging
