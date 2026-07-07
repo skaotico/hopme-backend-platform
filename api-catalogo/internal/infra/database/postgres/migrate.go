@@ -12,7 +12,9 @@ import (
 
 // RunMigrations aplica las migraciones pendientes en la base de datos
 func RunMigrations(db *sql.DB, migrationsPath string) error {
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	driver, err := postgres.WithInstance(db, &postgres.Config{
+		MigrationsTable: "schema_migrations_catalogo",
+	})
 	if err != nil {
 		return err
 	}
