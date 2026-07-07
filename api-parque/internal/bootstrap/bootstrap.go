@@ -2,7 +2,7 @@ package bootstrap
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
@@ -52,8 +52,6 @@ func Run() {
 	}
 	defer func() { _ = db.Close() }()
 
-
-
 	// Dependencias
 	ecoparqueRepo := postgres.NewEcoparqueRepository(db)
 	ecoparqueUC := usecase.NewEcoparqueUseCase(ecoparqueRepo)
@@ -63,7 +61,6 @@ func Run() {
 
 	// Router
 	r := router.NewRouter(ecoparqueUC, loggingMid)
-	
 
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -73,33 +70,52 @@ func Run() {
 		IdleTimeout:  60 * time.Second,
 	}
 
+	// Canal para escuchar errores de arranque
+	serverErrors := make(chan error, 1)
 	go func() {
-		fmt.Printf("\n")
-		fmt.Printf("===========================================================\n")
-		fmt.Printf("  🚀 PARQUE-SERVICE IS RUNNING! [%s]\n", cfg.Environment)
-		fmt.Printf("===========================================================\n")
-		fmt.Printf("  => API Base:   http://localhost:%s/api/v1\n", cfg.Port)
-		fmt.Printf("  => Health:     http://localhost:%s/api/v1/health\n", cfg.Port)
-		fmt.Printf("  => Swagger UI: http://localhost:%s/swagger/index.html\n", cfg.Port)
-		fmt.Printf("===========================================================\n\n")
+		// Loguear endpoints como JSON para observabilidad
+		logger.Info("[PARQUE-SERVICE] Endpoints disponibilizados",
+			slog.String("swagger_ui", "http://localhost:"+cfg.Port+"/swagger/"),
+			slog.String("swagger_json", "http://localhost:"+cfg.Port+"/swagger/doc.json"),
+			slog.Group("endpoints",
+				slog.String("health", "GET /api/v1/health"),
+				slog.String("crear_ecoparque", "POST /api/v1/parques"),
+				slog.String("listar_ecoparques", "GET /api/v1/parques"),
+				slog.String("obtener_ecoparque", "GET /api/v1/parques/{id}"),
+				slog.String("actualizar_ecoparque", "PUT /api/v1/parques/{id}"),
+				slog.String("eliminar_ecoparque", "DELETE /api/v1/parques/{id}"),
+			),
+		)
 
-		logger.Info("[PARQUE-SERVICE] Servidor escuchando", slog.String("port", cfg.Port))
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("[PARQUE-SERVICE] Error en servidor HTTP", slog.Any("error", err))
-			os.Exit(1)
-		}
+		logger.Info("[PARQUE-SERVICE] Servidor HTTP escuchando",
+			slog.String("addr", ":"+cfg.Port),
+			slog.String("read_timeout", server.ReadTimeout.String()),
+			slog.String("write_timeout", server.WriteTimeout.String()),
+		)
+		serverErrors <- server.ListenAndServe()
 	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	logger.Info("[PARQUE-SERVICE] Apagando servidor...")
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	// Esperar bloqueado por un error de arranque o una señal de apagado
+	select {
+	case err := <-serverErrors:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("[PARQUE-SERVICE] Error crítico en el servidor HTTP", slog.Any("error", err))
+			os.Exit(1)
+		}
+	case sig := <-shutdown:
+		logger.Info("[PARQUE-SERVICE] Señal recibida. Iniciando apagado controlado...", slog.Any("signal", sig))
 
-	if err := server.Shutdown(ctx); err != nil {
-		logger.Error("[PARQUE-SERVICE] Apagado forzado del servidor", slog.Any("error", err))
+		// Otorgar un límite de 15 segundos para completar solicitudes HTTP activas
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+
+		if err := server.Shutdown(ctx); err != nil {
+			logger.Error("[PARQUE-SERVICE] Error al apagar el servidor con gracia. Forzando cierre...", slog.Any("error", err))
+			_ = server.Close()
+		}
+		logger.Info("[PARQUE-SERVICE] Servidor HTTP apagado correctamente.")
 	}
-	logger.Info("[PARQUE-SERVICE] Servidor detenido correctamente")
 }
