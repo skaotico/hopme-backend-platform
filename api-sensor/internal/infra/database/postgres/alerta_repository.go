@@ -66,7 +66,6 @@ func (r *alertaRepository) List(ctx context.Context, sensorID *uuid.UUID, estado
 	if estado != nil {
 		query += fmt.Sprintf(" AND estado = $%d", argCount)
 		args = append(args, *estado)
-		argCount++
 	}
 
 	query += " ORDER BY fecha_alerta DESC"

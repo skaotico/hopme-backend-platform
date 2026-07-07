@@ -101,7 +101,6 @@ func (r *sensorRepository) List(ctx context.Context, filter model.SensorFilter) 
 	if filter.Activo != nil {
 		query += fmt.Sprintf(" AND activo = $%d", argCount)
 		args = append(args, *filter.Activo)
-		argCount++
 	}
 
 	rows, err := r.db.QueryContext(ctx, query, args...)

@@ -129,11 +129,12 @@ func ListSensoresHandler(uc port.SensorUseCase) http.Handler {
 		activoStr := r.URL.Query().Get("activo")
 		if activoStr != "" {
 			var activo bool
-			if activoStr == "true" {
+			switch activoStr {
+			case "true":
 				activo = true
-			} else if activoStr == "false" {
+			case "false":
 				activo = false
-			} else {
+			default:
 				response.Failure(w, http.StatusBadRequest, "BAD_REQUEST", "activo debe ser true o false", "")
 				return
 			}
