@@ -1,27 +1,212 @@
-import React, { useEffect } from 'react';
-import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl, StatusBar } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  ActivityIndicator,
+  TouchableOpacity,
+  RefreshControl,
+  StatusBar,
+  Alert,
+  Image,
+  Animated,
+} from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useArboles } from '../hooks/useArboles';
+import { CatalogoService } from '../services/catalogo.service';
+import { EspecieArbol, EstadoArbol } from '../dto/catalogo.dto';
+import { Arbol } from '../dto/arbol.dto';
 import { styles } from './ArbolListScreen.styles';
 
 interface ArbolListScreenProps {
   zonaId: string;
   onBack: () => void;
   onAdd: () => void;
+  onEdit: (arbol: Arbol) => void;
 }
 
-export function ArbolListScreen({ zonaId, onBack, onAdd }: ArbolListScreenProps) {
-  const { arboles, loading, error, refresh } = useArboles(zonaId);
+// Fade & Slide animated card item
+function AnimatedCard({ item, index, onEdit, onDelete, especies, estados }: {
+  item: Arbol;
+  index: number;
+  onEdit: () => void;
+  onDelete: () => void;
+  especies: EspecieArbol[];
+  estados: EstadoArbol[];
+}) {
+  const animatedValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(animatedValue, {
+      toValue: 1,
+      duration: 350,
+      delay: index * 100, // staggered animation
+      useNativeDriver: true,
+    }).start();
+  }, [index]);
+
+  const translateY = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [30, 0],
+  });
+
+  const matchedEspecie = especies.find((e) => e.id === item.especie_id);
+  const matchedEstado = estados.find((e) => e.id === item.estado_id);
+
+  const getEspecieTitle = () => {
+    if (matchedEspecie) {
+      return matchedEspecie.nombre_cientifico;
+    }
+    return 'Especie Desconocida';
+  };
+
+  const getEspecieSub = () => {
+    if (matchedEspecie?.nombre_comun) {
+      return matchedEspecie.nombre_comun;
+    }
+    return matchedEspecie?.familia ? `Familia: ${matchedEspecie.familia}` : null;
+  };
+
+  const getEstadoName = () => {
+    if (matchedEstado) {
+      return matchedEstado.nombre || matchedEstado.codigo;
+    }
+    return 'Salud N/A';
+  };
+
+  return (
+    <Animated.View
+      style={[
+        styles.card,
+        {
+          opacity: animatedValue,
+          transform: [{ translateY }],
+        },
+      ]}
+    >
+      <View style={styles.cardContent}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardLabel}>CÓDIGO: {item.codigo || 'S/N'}</Text>
+          <View style={styles.badge}>
+            <MaterialIcons name="health-and-safety" size={14} color="#14B8A6" />
+            <Text style={styles.badgeText}>{getEstadoName()}</Text>
+          </View>
+        </View>
+
+        <Text style={styles.cardTitle}>{getEspecieTitle()}</Text>
+
+        {getEspecieSub() && (
+          <Text style={styles.cardSubtitle}>
+            <MaterialIcons name="spa" size={14} color="#8FA3A9" /> {getEspecieSub()}
+          </Text>
+        )}
+
+        <Text style={styles.cardSubtitle}>
+          <MaterialIcons name="height" size={14} color="#8FA3A9" /> Altura: {item.altura_m ? `${item.altura_m}m` : '-'} | Copa: {item.ancho_copa_m ? `${item.ancho_copa_m}m` : '-'} | Tronco: {item.diametro_tronco_cm ? `${item.diametro_tronco_cm}cm` : '-'}
+        </Text>
+
+        {item.observaciones && (
+          <Text style={styles.cardSubtitle}>
+            <MaterialIcons name="chat-bubble-outline" size={14} color="#8FA3A9" /> {item.observaciones}
+          </Text>
+        )}
+      </View>
+
+      {item.latitud != null && item.longitud != null && (
+        <View style={styles.mapContainer}>
+          <MapView
+            style={styles.map}
+            initialRegion={{
+              latitude: item.latitud,
+              longitude: item.longitud,
+              latitudeDelta: 0.002,
+              longitudeDelta: 0.002,
+            }}
+            scrollEnabled={false}
+            zoomEnabled={false}
+          >
+            <Marker coordinate={{ latitude: item.latitud, longitude: item.longitud }} />
+          </MapView>
+        </View>
+      )}
+
+      <View style={styles.cardFooter}>
+        <Text style={styles.statsText}>
+          Plantación: {item.fecha_plantacion ? new Date(item.fecha_plantacion).toLocaleDateString() : 'N/A'}
+        </Text>
+
+        <View style={styles.cardActions}>
+          <TouchableOpacity style={styles.actionButton} onPress={onEdit} activeOpacity={0.7}>
+            <MaterialIcons name="edit" size={16} color="#14B8A6" />
+            <Text style={styles.actionButtonText}>Editar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.actionButtonDanger]}
+            onPress={onDelete}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="delete-outline" size={16} color="#F43F5E" />
+            <Text style={[styles.actionButtonText, styles.actionButtonTextDanger]}>Borrar</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
+
+export function ArbolListScreen({ zonaId, onBack, onAdd, onEdit }: ArbolListScreenProps) {
+  const { arboles, loading, error, refresh, removeArbol } = useArboles(zonaId);
+
+  // Catalogs to resolve names
+  const [especies, setEspecies] = useState<EspecieArbol[]>([]);
+  const [estados, setEstados] = useState<EstadoArbol[]>([]);
 
   useEffect(() => {
     refresh();
+
+    // Fetch catalog list to map names in render
+    (async () => {
+      try {
+        const [loadedEspecies, loadedEstados] = await Promise.all([
+          CatalogoService.list('especies'),
+          CatalogoService.list('estados-arbol'),
+        ]);
+        setEspecies(loadedEspecies as EspecieArbol[]);
+        setEstados(loadedEstados as EstadoArbol[]);
+      } catch (err) {
+        console.warn('Error fetching catalogs in ArbolListScreen:', err);
+      }
+    })();
   }, [refresh]);
+
+  const handleDelete = (item: Arbol) => {
+    const matched = especies.find((e) => e.id === item.especie_id);
+    const labelName = matched ? matched.nombre_cientifico : item.codigo || 'Árbol';
+
+    Alert.alert(
+      'Eliminar Árbol',
+      `¿Estás seguro de que deseas eliminar este espécimen ("${labelName}") del ecoparque?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            const result = await removeArbol(item.id);
+            if (!result.success) {
+              Alert.alert('Error', result.error || 'No se pudo eliminar el árbol.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   if (loading && arboles.length === 0) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#10B981" />
+        <ActivityIndicator size="large" color="#14B8A6" />
       </View>
     );
   }
@@ -35,7 +220,22 @@ export function ArbolListScreen({ zonaId, onBack, onAdd }: ArbolListScreenProps)
         </TouchableOpacity>
         <Text style={styles.title}>Árboles de la Zona</Text>
       </View>
-      
+
+      {/* Holographic 3D Tree Dashboard Widget */}
+      <View style={styles.dashboardCard}>
+        <View style={styles.dashboardInfo}>
+          <Text style={styles.dashboardTitle}>Holograma Dasométrico</Text>
+          <Text style={styles.dashboardDesc}>
+            Monitoreo en tiempo real de la vitalidad y crecimiento de los especímenes plantados en esta zona.
+          </Text>
+        </View>
+        <Image
+          source={require('../../assets/holographic_tree.png')}
+          style={styles.dashboardImage}
+          resizeMode="cover"
+        />
+      </View>
+
       {error && (
         <View style={styles.errorContainer}>
           <MaterialIcons name="error-outline" size={20} color="#F43F5E" />
@@ -48,58 +248,25 @@ export function ArbolListScreen({ zonaId, onBack, onAdd }: ArbolListScreenProps)
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#10B981" />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#14B8A6" />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconCircle}>
-               <MaterialIcons name="forest" size={48} color="#10B981" />
+              <MaterialIcons name="forest" size={48} color="#14B8A6" />
             </View>
             <Text style={styles.emptyText}>No hay árboles registrados</Text>
             <Text style={styles.emptySubtext}>Comienza a registrar la flora plantada en esta zona.</Text>
           </View>
         }
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.cardContent}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardLabel}>Código: {item.codigo || 'S/N'}</Text>
-                <View style={styles.badge}>
-                  <MaterialIcons name="eco" size={14} color="#FFFFFF" />
-                  <Text style={styles.badgeText}>{item.altura_m ? `${item.altura_m}m` : 'N/A'}</Text>
-                </View>
-              </View>
-              <Text style={styles.cardTitle}>Especie: {item.especie_id ? item.especie_id.substring(0,8) : 'Desconocida'}</Text>
-              
-              <Text style={styles.cardSubtitle}>
-                <MaterialIcons name="height" size={14} color="#8FA3A9" /> Altura: {item.altura_m || '-'} m | Diámetro: {item.diametro_tronco_cm || '-'} cm
-              </Text>
-              <Text style={styles.cardSubtitle}>
-                <MaterialIcons name="description" size={14} color="#8FA3A9" /> {item.observaciones || 'Sin observaciones'}
-              </Text>
-            </View>
-            
-            {item.latitud != null && item.longitud != null && (
-              <View style={styles.mapContainer}>
-                <MapView
-                  style={styles.map}
-                  initialRegion={{
-                    latitude: item.latitud,
-                    longitude: item.longitud,
-                    latitudeDelta: 0.002,
-                    longitudeDelta: 0.002,
-                  }}
-                  scrollEnabled={false}
-                  zoomEnabled={false}
-                >
-                  <Marker coordinate={{ latitude: item.latitud, longitude: item.longitud }} />
-                </MapView>
-              </View>
-            )}
-            
-            <View style={styles.cardFooter}>
-               <Text style={styles.statsText}>Registrado: {item.fecha_creacion ? new Date(item.fecha_creacion).toLocaleDateString() : 'N/A'}</Text>
-            </View>
-          </View>
+        renderItem={({ item, index }) => (
+          <AnimatedCard
+            item={item}
+            index={index}
+            onEdit={() => onEdit(item)}
+            onDelete={() => handleDelete(item)}
+            especies={especies}
+            estados={estados}
+          />
         )}
       />
 

@@ -10,10 +10,12 @@ import { ZonaAddScreen } from './src/components/ZonaAddScreen';
 import { ZonaEditScreen } from './src/components/ZonaEditScreen';
 import { ArbolListScreen } from './src/components/ArbolListScreen';
 import { ArbolAddScreen } from './src/components/ArbolAddScreen';
+import { ArbolEditScreen } from './src/components/ArbolEditScreen';
 import { Sidebar } from './src/components/Sidebar';
 import { CatalogoListScreen } from './src/components/catalogo/CatalogoListScreen';
 import { CatalogoFormScreen } from './src/components/catalogo/CatalogoFormScreen';
 import { Zona } from './src/dto/zona.dto';
+import { Arbol } from './src/dto/arbol.dto';
 import { CatalogItem, CatalogType } from './src/dto/catalogo.dto';
 
 type ScreenName =
@@ -24,6 +26,7 @@ type ScreenName =
   | 'ZonaEdit'
   | 'ArbolList'
   | 'ArbolAdd'
+  | 'ArbolEdit'
   | 'CatalogoList_especies'
   | 'CatalogoList_estados-arbol'
   | 'CatalogoList_estados-estanque'
@@ -41,6 +44,7 @@ export default function App() {
   const [selectedParqueId, setSelectedParqueId] = useState<string | null>(null);
   const [selectedZonaId, setSelectedZonaId] = useState<string | null>(null);
   const [zonaToEdit, setZonaToEdit] = useState<Zona | null>(null);
+  const [arbolToEdit, setArbolToEdit] = useState<Arbol | null>(null);
 
   // Sidebar and Catalog navigation state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -131,6 +135,10 @@ export default function App() {
             zonaId={selectedZonaId}
             onBack={() => setCurrentScreen('ZonaList')}
             onAdd={() => setCurrentScreen('ArbolAdd')}
+            onEdit={(arbol) => {
+              setArbolToEdit(arbol);
+              setCurrentScreen('ArbolEdit');
+            }}
           />
         );
       case 'ArbolAdd':
@@ -143,6 +151,25 @@ export default function App() {
             zonaId={selectedZonaId}
             onBack={() => setCurrentScreen('ArbolList')}
             onSuccess={() => setCurrentScreen('ArbolList')}
+          />
+        );
+      case 'ArbolEdit':
+        if (!selectedZonaId || !arbolToEdit) {
+          setCurrentScreen('ArbolList');
+          return null;
+        }
+        return (
+          <ArbolEditScreen
+            zonaId={selectedZonaId}
+            arbol={arbolToEdit}
+            onBack={() => {
+              setArbolToEdit(null);
+              setCurrentScreen('ArbolList');
+            }}
+            onSuccess={() => {
+              setArbolToEdit(null);
+              setCurrentScreen('ArbolList');
+            }}
           />
         );
 

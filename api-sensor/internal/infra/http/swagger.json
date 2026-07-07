@@ -1,0 +1,751 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "Microservicio de gestión de sensores (iot.sensor, readings, alerts). Parte de la Homelab Collector Platform.",
+    "title": "Homelab Platform - API Sensor",
+    "contact": {
+      "name": "Skaotico"
+    },
+    "version": "1.0"
+  },
+  "host": "localhost:9096",
+  "basePath": "/api/v1",
+  "schemes": [
+    "http"
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "description": "Verifica que el servicio Sensor está operativo",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "health"
+        ],
+        "summary": "Health check del servicio",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sensores": {
+      "get": {
+        "description": "Retorna la lista de sensores filtrada opcionalmente por arbol_id o estanque_id",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "sensores"
+        ],
+        "summary": "Listar sensores",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Filtrar por UUID de árbol",
+            "name": "arbol_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Filtrar por UUID de estanque",
+            "name": "estanque_id",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "Filtrar por estado activo",
+            "name": "activo",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/model.Sensor"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "description": "Registra un nuevo sensor de monitoreo",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "sensores"
+        ],
+        "summary": "Registrar un sensor",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/definitions/model.CreateSensorRequest"
+            },
+            "description": "Datos del sensor a registrar",
+            "name": "sensor",
+            "in": "body",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/model.Sensor"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          }
+        }
+      }
+    },
+    "/sensores/{id}": {
+      "get": {
+        "description": "Retorna los datos detallados de un sensor específico",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "sensores"
+        ],
+        "summary": "Obtener un sensor por ID",
+        "parameters": [
+          {
+            "type": "string",
+            "required": true,
+            "description": "UUID del sensor",
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/model.Sensor"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "description": "Actualiza uno o más campos de un sensor existente",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "sensores"
+        ],
+        "summary": "Actualizar un sensor",
+        "parameters": [
+          {
+            "type": "string",
+            "required": true,
+            "description": "UUID del sensor",
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/definitions/model.UpdateSensorRequest"
+            },
+            "description": "Campos a actualizar",
+            "name": "sensor",
+            "in": "body",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/model.Sensor"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "Elimina un sensor de la base de datos",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "sensores"
+        ],
+        "summary": "Eliminar un sensor",
+        "parameters": [
+          {
+            "type": "string",
+            "required": true,
+            "description": "UUID del sensor",
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          }
+        }
+      }
+    },
+    "/sensores/{id}/lecturas": {
+      "get": {
+        "description": "Retorna el histórico de lecturas reportadas por un sensor específico",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "lecturas"
+        ],
+        "summary": "Listar lecturas de un sensor",
+        "parameters": [
+          {
+            "type": "string",
+            "required": true,
+            "description": "UUID del sensor",
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/model.LecturaSensor"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "description": "Registra una nueva lectura/medición reportada por un sensor",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "lecturas"
+        ],
+        "summary": "Registrar lectura de sensor",
+        "parameters": [
+          {
+            "type": "string",
+            "required": true,
+            "description": "UUID del sensor",
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/definitions/model.CreateLecturaRequest"
+            },
+            "description": "Datos de la lectura",
+            "name": "lectura",
+            "in": "body",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/model.LecturaSensor"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          }
+        }
+      }
+    },
+    "/sensores/{id}/alertas": {
+      "post": {
+        "description": "Registra un evento de alerta disparado por un sensor",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "alertas"
+        ],
+        "summary": "Registrar alerta de sensor",
+        "parameters": [
+          {
+            "type": "string",
+            "required": true,
+            "description": "UUID del sensor",
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/definitions/model.CreateAlertaRequest"
+            },
+            "description": "Datos de la alerta",
+            "name": "alerta",
+            "in": "body",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/model.Alerta"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          }
+        }
+      }
+    },
+    "/alertas": {
+      "get": {
+        "description": "Retorna la lista de alertas del sistema, con filtros opcionales",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "alertas"
+        ],
+        "summary": "Listar alertas",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Filtrar por UUID de sensor",
+            "name": "sensor_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Filtrar por estado (e.g. activa, resuelta)",
+            "name": "estado",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/model.Alerta"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          }
+        }
+      }
+    },
+    "/alertas/{id}/estado": {
+      "put": {
+        "description": "Actualiza el estado (activa, resuelta, etc.) y observaciones de una alerta",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "alertas"
+        ],
+        "summary": "Actualizar estado de alerta",
+        "parameters": [
+          {
+            "type": "string",
+            "required": true,
+            "description": "UUID de la alerta",
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/definitions/model.UpdateAlertaStatusRequest"
+            },
+            "description": "Datos de actualización de la alerta",
+            "name": "estado",
+            "in": "body",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/model.Alerta"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/response.APIResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "model.Sensor": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "codigo": {
+          "type": "string"
+        },
+        "tipo_sensor_id": {
+          "type": "string"
+        },
+        "arbol_id": {
+          "type": "string"
+        },
+        "estanque_id": {
+          "type": "string"
+        },
+        "fabricante": {
+          "type": "string"
+        },
+        "modelo": {
+          "type": "string"
+        },
+        "fecha_instalacion": {
+          "type": "string"
+        },
+        "activo": {
+          "type": "boolean"
+        }
+      }
+    },
+    "model.CreateSensorRequest": {
+      "type": "object",
+      "required": [
+        "tipo_sensor_id"
+      ],
+      "properties": {
+        "codigo": {
+          "type": "string"
+        },
+        "tipo_sensor_id": {
+          "type": "string"
+        },
+        "arbol_id": {
+          "type": "string"
+        },
+        "estanque_id": {
+          "type": "string"
+        },
+        "fabricante": {
+          "type": "string"
+        },
+        "modelo": {
+          "type": "string"
+        },
+        "fecha_instalacion": {
+          "type": "string"
+        }
+      }
+    },
+    "model.UpdateSensorRequest": {
+      "type": "object",
+      "properties": {
+        "codigo": {
+          "type": "string"
+        },
+        "tipo_sensor_id": {
+          "type": "string"
+        },
+        "arbol_id": {
+          "type": "string"
+        },
+        "estanque_id": {
+          "type": "string"
+        },
+        "fabricante": {
+          "type": "string"
+        },
+        "modelo": {
+          "type": "string"
+        },
+        "fecha_instalacion": {
+          "type": "string"
+        },
+        "activo": {
+          "type": "boolean"
+        }
+      }
+    },
+    "model.LecturaSensor": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "sensor_id": {
+          "type": "string"
+        },
+        "valor": {
+          "type": "number"
+        },
+        "fecha_lectura": {
+          "type": "string"
+        },
+        "bateria_porcentaje": {
+          "type": "integer"
+        },
+        "observacion": {
+          "type": "string"
+        }
+      }
+    },
+    "model.CreateLecturaRequest": {
+      "type": "object",
+      "required": [
+        "valor"
+      ],
+      "properties": {
+        "valor": {
+          "type": "number"
+        },
+        "fecha_lectura": {
+          "type": "string"
+        },
+        "bateria_porcentaje": {
+          "type": "integer"
+        },
+        "observacion": {
+          "type": "string"
+        }
+      }
+    },
+    "model.Alerta": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "sensor_id": {
+          "type": "string"
+        },
+        "tipo": {
+          "type": "string"
+        },
+        "valor_detectado": {
+          "type": "number"
+        },
+        "umbral": {
+          "type": "number"
+        },
+        "fecha_alerta": {
+          "type": "string"
+        },
+        "estado": {
+          "type": "string"
+        },
+        "observacion": {
+          "type": "string"
+        }
+      }
+    },
+    "model.CreateAlertaRequest": {
+      "type": "object",
+      "required": [
+        "tipo"
+      ],
+      "properties": {
+        "tipo": {
+          "type": "string"
+        },
+        "valor_detectado": {
+          "type": "number"
+        },
+        "umbral": {
+          "type": "number"
+        },
+        "fecha_alerta": {
+          "type": "string"
+        },
+        "observacion": {
+          "type": "string"
+        }
+      }
+    },
+    "model.UpdateAlertaStatusRequest": {
+      "type": "object",
+      "required": [
+        "estado"
+      ],
+      "properties": {
+        "estado": {
+          "type": "string"
+        },
+        "observacion": {
+          "type": "string"
+        }
+      }
+    },
+    "response.APIResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "$ref": "#/definitions/response.APIError"
+        }
+      }
+    },
+    "response.APIError": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

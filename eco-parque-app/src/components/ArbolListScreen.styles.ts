@@ -16,7 +16,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 24,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   backButton: {
     width: 40,
@@ -30,11 +30,48 @@ export const styles = StyleSheet.create({
     marginRight: 16,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: -0.5,
   },
+  
+  // Dashboard panel with 3D Holographic tree image
+  dashboardCard: {
+    marginHorizontal: 24,
+    marginBottom: 20,
+    borderRadius: 28,
+    backgroundColor: '#112226',
+    borderWidth: 1,
+    borderColor: '#1D343B',
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+  },
+  dashboardInfo: {
+    flex: 1,
+    paddingRight: 16,
+  },
+  dashboardTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  dashboardDesc: {
+    fontSize: 13,
+    color: '#8FA3A9',
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+  dashboardImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
+  },
+
   errorContainer: {
     flexDirection: 'row',
     backgroundColor: 'rgba(244, 63, 94, 0.1)',
@@ -53,12 +90,12 @@ export const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 24,
-    paddingBottom: 120,
+    paddingBottom: 140,
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 80,
+    marginTop: 60,
     paddingHorizontal: 20,
   },
   emptyIconCircle: {
@@ -85,16 +122,23 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
+  
+  // Premium Glassmorphism Card
   card: {
-    backgroundColor: '#112226',
+    backgroundColor: 'rgba(17, 34, 38, 0.8)',
     marginBottom: 16,
-    borderRadius: 32,
+    borderRadius: 28,
     borderWidth: 1,
-    borderColor: '#1D343B',
+    borderColor: 'rgba(20, 184, 166, 0.25)', // glowing borders
     overflow: 'hidden',
+    shadowColor: '#14B8A6',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 4,
   },
   cardContent: {
-    padding: 24,
+    padding: 20,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -103,41 +147,46 @@ export const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardLabel: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#8FA3A9',
-    fontWeight: '500',
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#10B981',
+    backgroundColor: 'rgba(20, 184, 166, 0.15)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(20, 184, 166, 0.3)',
   },
   badgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
+    color: '#14B8A6',
+    fontSize: 11,
     fontWeight: 'bold',
     marginLeft: 4,
   },
   cardTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '800',
     color: '#FFFFFF',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   cardSubtitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: '#8FA3A9',
     fontWeight: '500',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   mapContainer: {
     height: 120,
     width: '100%',
     borderTopWidth: 1,
     borderTopColor: '#1D343B',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1D343B',
   },
   map: {
     ...StyleSheet.absoluteFillObject,
@@ -146,15 +195,45 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    backgroundColor: '#0A181C',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: 'rgba(10, 24, 28, 0.8)',
   },
   statsText: {
     color: '#8FA3A9',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
   },
+  
+  // Action buttons
+  cardActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(20, 184, 166, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 184, 166, 0.2)',
+  },
+  actionButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#14B8A6',
+  },
+  actionButtonDanger: {
+    backgroundColor: 'rgba(244, 63, 94, 0.1)',
+    borderColor: 'rgba(244, 63, 94, 0.2)',
+  },
+  actionButtonTextDanger: {
+    color: '#F43F5E',
+  },
+
   fab: {
     position: 'absolute',
     bottom: 32,
@@ -162,10 +241,10 @@ export const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#10B981',
+    backgroundColor: '#14B8A6',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#10B981',
+    shadowColor: '#14B8A6',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,

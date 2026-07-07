@@ -34,11 +34,33 @@ export function useArboles(zonaId: string | null) {
     }
   };
 
+  const updateArbol = async (id: string, data: any) => {
+    try {
+      const updated = await ArbolService.updateArbol(id, data);
+      setArboles(prev => prev.map(a => a.id === id ? updated : a));
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: 'No se pudo actualizar el árbol.' };
+    }
+  };
+
+  const removeArbol = async (id: string) => {
+    try {
+      await ArbolService.deleteArbol(id);
+      setArboles(prev => prev.filter(a => a.id !== id));
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: 'No se pudo eliminar el árbol.' };
+    }
+  };
+
   return {
     arboles,
     loading,
     error,
     refresh: fetchArboles,
     addArbol,
+    updateArbol,
+    removeArbol,
   };
 }
