@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
@@ -76,24 +77,52 @@ func Run() {
 		IdleTimeout:  60 * time.Second,
 	}
 
+	// Canal para escuchar errores de arranque
+	serverErrors := make(chan error, 1)
 	go func() {
-		logger.Info("[ZONA-SERVICE] Servidor escuchando", slog.String("port", cfg.Port))
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("[ZONA-SERVICE] Error en servidor HTTP", slog.Any("error", err))
-			os.Exit(1)
-		}
+		// Loguear endpoints como JSON para observabilidad
+		logger.Info("[ZONA-SERVICE] Endpoints disponibilizados",
+			slog.String("swagger_ui", "http://localhost:"+cfg.Port+"/swagger/"),
+			slog.String("swagger_json", "http://localhost:"+cfg.Port+"/swagger/doc.json"),
+			slog.Group("endpoints",
+				slog.String("health", "GET /api/v1/health"),
+				slog.String("crear_zona", "POST /api/v1/zonas"),
+				slog.String("listar_zonas", "GET /api/v1/zonas"),
+				slog.String("obtener_zona", "GET /api/v1/zonas/{id}"),
+				slog.String("actualizar_zona", "PUT /api/v1/zonas/{id}"),
+				slog.String("eliminar_zona", "DELETE /api/v1/zonas/{id}"),
+			),
+		)
+
+		logger.Info("[ZONA-SERVICE] Servidor HTTP escuchando",
+			slog.String("addr", ":"+cfg.Port),
+			slog.String("read_timeout", server.ReadTimeout.String()),
+			slog.String("write_timeout", server.WriteTimeout.String()),
+		)
+		serverErrors <- server.ListenAndServe()
 	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	logger.Info("[ZONA-SERVICE] Apagando servidor...")
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	// Esperar bloqueado por un error de arranque o una señal de apagado
+	select {
+	case err := <-serverErrors:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("[ZONA-SERVICE] Error crítico en el servidor HTTP", slog.Any("error", err))
+			os.Exit(1)
+		}
+	case sig := <-shutdown:
+		logger.Info("[ZONA-SERVICE] Señal recibida. Iniciando apagado controlado...", slog.Any("signal", sig))
 
-	if err := server.Shutdown(ctx); err != nil {
-		logger.Error("[ZONA-SERVICE] Apagado forzado del servidor", slog.Any("error", err))
+		// Otorgar un límite de 15 segundos para completar solicitudes HTTP activas
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+
+		if err := server.Shutdown(ctx); err != nil {
+			logger.Error("[ZONA-SERVICE] Error al apagar el servidor con gracia. Forzando cierre...", slog.Any("error", err))
+			_ = server.Close()
+		}
+		logger.Info("[ZONA-SERVICE] Servidor HTTP apagado correctamente.")
 	}
-	logger.Info("[ZONA-SERVICE] Servidor detenido correctamente")
 }
