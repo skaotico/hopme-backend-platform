@@ -1,7 +1,7 @@
 /**
- * Pipeline CI/CD - API Auth
+ * Pipeline CI/CD - API Zona
  * 
- * Arquitectura del pipeline para el microservicio homelab-api-auth.
+ * Arquitectura del pipeline para el microservicio homelab-api-zona.
  * Este pipeline implementa un flujo de trabajo estándar de Integración y Despliegue Continuo (CI/CD),
  * incluyendo análisis de código estático (linting), pruebas, escaneo de vulnerabilidades y despliegue local.
  * 
@@ -18,20 +18,20 @@ pipeline {
     environment {
         // Configuración de Despliegue
         IMAGES_TO_KEEP = '2'
-        IMAGE_NAME = 'homelab-api-auth'
-        CONTAINER_NAME = 'homelab-api-auth'
-        PORT = '9090'
-        APP_PATH = 'api-auth'
+        IMAGE_NAME = 'homelab-api-zona'
+        CONTAINER_NAME = 'homelab-api-zona'
+        PORT = '9092'
+        APP_PATH = 'api-zona'
 
         // Configuración de Vault
-        VAULT_ADDR = 'http://192.168.1.28:8200'
-        VAULT_SECRET_PATH = 'homelab/data/dev/api-auth'
+        VAULT_ADDR = 'http://192.168.1.27:8200'
+        VAULT_SECRET_PATH = 'homelab/data/dev/api-zona'
         VAULT_SECRET_PATH_POSTGRES = 'homelab/data/dev/postgres'
 
         // Configuración del Registro
-        DOCKER_REGISTRY = '192.168.1.28:5000'
+        DOCKER_REGISTRY = '192.168.1.27:5000'
         DOCKER_NAMESPACE = 'homelab'
-        SERVICE_NAME = 'api-auth'
+        SERVICE_NAME = 'api-zona'
 
         // Configuración de Trello
         TRELLO_LIST_ID = '6a47d24d6454b81b60baeec5'
@@ -303,11 +303,11 @@ pipeline {
                         echo "Creando tarjeta en Trello..."
                         writeFile file: 'trello_desc.txt', text: cardDesc
                         sh """
-                            curl -v -X POST "https://api.trello.com/1/cards" \
-                              --data-urlencode "name=${cardName}" \
-                              --data-urlencode desc@trello_desc.txt \
-                              --data-urlencode "idList=${env.TRELLO_LIST_ID}" \
-                              --data-urlencode "key=${TRELLO_KEY}" \
+                            curl -v -X POST "https://api.trello.com/1/cards" \\
+                              --data-urlencode "name=${cardName}" \\
+                              --data-urlencode desc@trello_desc.txt \\
+                              --data-urlencode "idList=${env.TRELLO_LIST_ID}" \\
+                              --data-urlencode "key=${TRELLO_KEY}" \\
                               --data-urlencode "token=${TRELLO_TOKEN}"
                         """
                     }
@@ -334,8 +334,8 @@ pipeline {
                         "- Mensaje: ${env.GIT_COMMIT_MESSAGE}\n\n" +
                         "Tiempo de Ejecución: ${duration}\n" +
                         "Entorno:\n" +
-                        "- Endpoint: http://192.168.1.20:9090\n" +
-                        "- Documentación Swagger: http://192.168.1.20:9090/swagger/\n" +
+                        "- Endpoint: http://192.168.1.20:9092\n" +
+                        "- Documentación Swagger: http://192.168.1.20:9092/swagger/\n" +
                         "URL del Build: ${env.BUILD_URL}"
                 
                 sendTelegramMessage(msg)
