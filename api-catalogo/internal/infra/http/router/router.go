@@ -3,9 +3,7 @@ package router
 import (
 	"net/http"
 
-	_ "c4-catalogo/docs"
 	catalogoHTTP "c4-catalogo/internal/infra/http"
-	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 // NewRouter crea y configura un multiplexor de peticiones nativo para toda la API de catálogo
@@ -20,8 +18,8 @@ func NewRouter(
 	mux := http.NewServeMux()
 
 	// Swagger Docs
-	mux.Handle("GET /swagger/", http.RedirectHandler("/swagger/index.html", http.StatusMovedPermanently))
-	mux.Handle("GET /swagger/{any...}", httpSwagger.WrapHandler)
+	mux.Handle("GET /swagger/", catalogoHTTP.SwaggerHandler())
+	mux.Handle("GET /swagger/doc.json", catalogoHTTP.SwaggerJSONHandler())
 
 	// Endpoint público de Healthcheck
 	mux.HandleFunc("GET /api/v1/health", func(w http.ResponseWriter, r *http.Request) {
