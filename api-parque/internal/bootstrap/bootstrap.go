@@ -50,7 +50,7 @@ func Run() {
 		logger.Error("[PARQUE-SERVICE] Error crítico al conectar a la base de datos", slog.Any("error", err))
 		os.Exit(1)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 
 
