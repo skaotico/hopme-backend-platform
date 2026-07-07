@@ -49,7 +49,11 @@ func Run() {
 		logger.Error("[ZONA-SERVICE] Error crítico al conectar a la base de datos", slog.Any("error", err))
 		os.Exit(1)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			logger.Error("[ZONA-SERVICE] Error al cerrar conexión de base de datos", slog.Any("error", err))
+		}
+	}()
 
 
 

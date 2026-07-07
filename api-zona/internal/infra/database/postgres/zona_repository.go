@@ -71,7 +71,9 @@ func (r *zonaRepository) List(ctx context.Context) ([]model.Zona, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var zonas []model.Zona
 	for rows.Next() {
