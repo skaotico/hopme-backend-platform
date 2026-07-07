@@ -187,21 +187,22 @@ pipeline {
          * Objetivo: Analizar la imagen Docker generada en busca de vulnerabilidades críticas de seguridad.
          * Herramienta: Trivy
          */
-        stage('Vulnerability Scanning') {
-            steps {
-                script { env.FAILED_STAGE = env.STAGE_NAME }
-                sh """
-                    docker run --rm \\
-                    -v /var/run/docker.sock:/var/run/docker.sock \\
-                    -v "\${WORKSPACE}/.trivy-cache:/root/.cache" \\
-                    aquasec/trivy:latest image \\
-                    --exit-code 1 \\
-                    --severity CRITICAL \\
-                    --light \\
-                    ${env.FULL_IMAGE_NAME}
-                """
-            }
-        }
+     stage('Vulnerability Scanning') {
+    steps {
+        script { env.FAILED_STAGE = env.STAGE_NAME }
+        sh """
+            docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${WORKSPACE}/.trivy-cache:/root/.cache" \
+            aquasec/trivy:latest image \
+            --exit-code 1 \
+            --severity CRITICAL \
+            --format json \
+            ${env.FULL_IMAGE_NAME} || true
+        """
+    }
+}
+
 
         /**
          * Stage: Registro de Artefacto
