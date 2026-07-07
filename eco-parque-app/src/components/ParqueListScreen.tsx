@@ -6,12 +6,12 @@ import { useParques } from '../hooks/useParques';
 import { styles } from './ParqueListScreen.styles';
 
 interface ParqueListScreenProps {
-  onLogout: () => void;
+  onOpenMenu: () => void;
   onAdd: () => void;
   onSelect: (id: string) => void;
 }
 
-export function ParqueListScreen({ onLogout, onAdd, onSelect }: ParqueListScreenProps) {
+export function ParqueListScreen({ onOpenMenu, onAdd, onSelect }: ParqueListScreenProps) {
   const { parques, loading, error, refresh, removeParque } = useParques();
 
   const handleRemove = async (id: string) => {
@@ -50,8 +50,8 @@ export function ParqueListScreen({ onLogout, onAdd, onSelect }: ParqueListScreen
           <Text style={styles.greeting}>Estás administrando</Text>
           <Text style={styles.title}>Mis Ecoparques</Text>
         </View>
-        <TouchableOpacity style={styles.logoutButton} onPress={onLogout} activeOpacity={0.7}>
-          <MaterialIcons name="logout" size={20} color="#14B8A6" />
+        <TouchableOpacity style={styles.logoutButton} onPress={onOpenMenu} activeOpacity={0.7}>
+          <MaterialIcons name="menu" size={24} color="#14B8A6" />
         </TouchableOpacity>
       </View>
       

@@ -1,0 +1,563 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "Microservicio de gestión de árboles (flora.arbol, historial y mediciones). Parte de la Homelab Collector Platform.",
+        "title": "Homelab Platform - API Arbol",
+        "contact": {
+            "name": "Skaotico"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:9095",
+    "basePath": "/api/v1",
+    "paths": {
+        "/health": {
+            "get": {
+                "description": "Verifica que el servicio Arbol está operativo",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Health check del servicio",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/arboles": {
+            "get": {
+                "description": "Retorna la lista completa o filtrada de árboles registrados",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "arboles"
+                ],
+                "summary": "Listar árboles",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filtrar por UUID de la zona",
+                        "name": "zona_id",
+                        "in": "query",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Arbol"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Registra un nuevo árbol en una zona del ecoparque",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "arboles"
+                ],
+                "summary": "Registrar un árbol",
+                "parameters": [
+                    {
+                        "description": "Datos del árbol a registrar",
+                        "name": "arbol",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateArbolRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.Arbol"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/arboles/{id}": {
+            "get": {
+                "description": "Retorna los datos detallados de un árbol específico",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "arboles"
+                ],
+                "summary": "Obtener un árbol por ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del árbol",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Arbol"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Actualiza uno o más campos de un árbol existente",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "arboles"
+                ],
+                "summary": "Actualizar un árbol",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del árbol",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Campos a actualizar",
+                        "name": "arbol",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateArbolRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Arbol"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Elimina un árbol de la base de datos",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "arboles"
+                ],
+                "summary": "Eliminar un árbol",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del árbol",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/arboles/{id}/historial": {
+            "get": {
+                "description": "Obtiene el historial completo de cambios de estado de un árbol específico",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "arboles"
+                ],
+                "summary": "Listar historial de estados",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del árbol",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.HistorialEstadoArbol"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Registra un cambio de estado en el historial de un árbol y actualiza su estado actual",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "arboles"
+                ],
+                "summary": "Registrar cambio de estado",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del árbol",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Detalle del nuevo estado",
+                        "name": "historial",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateHistorialRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.HistorialEstadoArbol"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/arboles/{id}/mediciones": {
+            "get": {
+                "description": "Obtiene todas las mediciones registradas de un árbol específico",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "arboles"
+                ],
+                "summary": "Listar mediciones de un árbol",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del árbol",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.MedicionArbol"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Registra una nueva medición para un árbol y actualiza las dimensiones actuales del árbol",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "arboles"
+                ],
+                "summary": "Registrar medición dasométrica",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del árbol",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Detalle de la medición",
+                        "name": "medicion",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateMedicionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.MedicionArbol"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "model.Arbol": {
+            "type": "object",
+            "properties": {
+                "id": { "type": "string" },
+                "zona_id": { "type": "string" },
+                "especie_id": { "type": "string" },
+                "estado_id": { "type": "string" },
+                "codigo": { "type": "string" },
+                "latitud": { "type": "number" },
+                "longitud": { "type": "number" },
+                "edad_estimada_anios": { "type": "integer" },
+                "altura_m": { "type": "number" },
+                "ancho_copa_m": { "type": "number" },
+                "diametro_tronco_cm": { "type": "number" },
+                "fecha_plantacion": { "type": "string" },
+                "fecha_registro": { "type": "string" },
+                "observaciones": { "type": "string" },
+                "fecha_creacion": { "type": "string" },
+                "fecha_actualizacion": { "type": "string" }
+            }
+        },
+        "model.CreateArbolRequest": {
+            "type": "object",
+            "required": ["zona_id"],
+            "properties": {
+                "zona_id": { "type": "string" },
+                "especie_id": { "type": "string" },
+                "estado_id": { "type": "string" },
+                "codigo": { "type": "string" },
+                "latitud": { "type": "number" },
+                "longitud": { "type": "number" },
+                "edad_estimada_anios": { "type": "integer" },
+                "altura_m": { "type": "number" },
+                "ancho_copa_m": { "type": "number" },
+                "diametro_tronco_cm": { "type": "number" },
+                "fecha_plantacion": { "type": "string" },
+                "observaciones": { "type": "string" }
+            }
+        },
+        "model.UpdateArbolRequest": {
+            "type": "object",
+            "properties": {
+                "zona_id": { "type": "string" },
+                "especie_id": { "type": "string" },
+                "estado_id": { "type": "string" },
+                "codigo": { "type": "string" },
+                "latitud": { "type": "number" },
+                "longitud": { "type": "number" },
+                "edad_estimada_anios": { "type": "integer" },
+                "altura_m": { "type": "number" },
+                "ancho_copa_m": { "type": "number" },
+                "diametro_tronco_cm": { "type": "number" },
+                "fecha_plantacion": { "type": "string" },
+                "observaciones": { "type": "string" }
+            }
+        },
+        "model.HistorialEstadoArbol": {
+            "type": "object",
+            "properties": {
+                "id": { "type": "string" },
+                "arbol_id": { "type": "string" },
+                "estado_id": { "type": "string" },
+                "observacion": { "type": "string" },
+                "fecha_registro": { "type": "string" }
+            }
+        },
+        "model.CreateHistorialRequest": {
+            "type": "object",
+            "required": ["estado_id"],
+            "properties": {
+                "estado_id": { "type": "string" },
+                "observacion": { "type": "string" }
+            }
+        },
+        "model.MedicionArbol": {
+            "type": "object",
+            "properties": {
+                "id": { "type": "string" },
+                "arbol_id": { "type": "string" },
+                "altura_m": { "type": "number" },
+                "ancho_copa_m": { "type": "number" },
+                "diametro_tronco_cm": { "type": "number" },
+                "observaciones": { "type": "string" },
+                "fecha_medicion": { "type": "string" }
+            }
+        },
+        "model.CreateMedicionRequest": {
+            "type": "object",
+            "properties": {
+                "altura_m": { "type": "number" },
+                "ancho_copa_m": { "type": "number" },
+                "diametro_tronco_cm": { "type": "number" },
+                "observaciones": { "type": "string" },
+                "fecha_medicion": { "type": "string" }
+            }
+        },
+        "response.APIError": {
+            "type": "object",
+            "properties": {
+                "code": { "type": "string" },
+                "details": { "type": "string" },
+                "message": { "type": "string" }
+            }
+        },
+        "response.APIResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "error": {
+                    "$ref": "#/definitions/response.APIError"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        }
+    }
+}

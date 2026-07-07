@@ -4,6 +4,8 @@ export const API_AUTH_URL = "http://192.168.1.27:9090/api/v1";
 export const API_PARQUE_URL = "http://192.168.1.27:9091/api/v1";
 export const API_ZONA_URL = "http://192.168.1.27:9092/api/v1";
 export const API_FLORA_URL = "http://192.168.1.27:9093/api/v1";
+export const API_CATALOGO_URL = "http://192.168.1.27:9094/api/v1";
+
 
 export const TOKEN_KEY = "@eco_parque_access_token";
 

@@ -10,9 +10,27 @@ import { ZonaAddScreen } from './src/components/ZonaAddScreen';
 import { ZonaEditScreen } from './src/components/ZonaEditScreen';
 import { ArbolListScreen } from './src/components/ArbolListScreen';
 import { ArbolAddScreen } from './src/components/ArbolAddScreen';
+import { Sidebar } from './src/components/Sidebar';
+import { CatalogoListScreen } from './src/components/catalogo/CatalogoListScreen';
+import { CatalogoFormScreen } from './src/components/catalogo/CatalogoFormScreen';
 import { Zona } from './src/dto/zona.dto';
+import { CatalogItem, CatalogType } from './src/dto/catalogo.dto';
 
-type ScreenName = 'ParqueList' | 'ParqueAdd' | 'ZonaList' | 'ZonaAdd' | 'ZonaEdit' | 'ArbolList' | 'ArbolAdd';
+type ScreenName =
+  | 'ParqueList'
+  | 'ParqueAdd'
+  | 'ZonaList'
+  | 'ZonaAdd'
+  | 'ZonaEdit'
+  | 'ArbolList'
+  | 'ArbolAdd'
+  | 'CatalogoList_especies'
+  | 'CatalogoList_estados-arbol'
+  | 'CatalogoList_estados-estanque'
+  | 'CatalogoList_estados-agua'
+  | 'CatalogoList_tipos-sensor'
+  | 'CatalogoAdd'
+  | 'CatalogoEdit';
 
 export default function App() {
   const { user, loading, login, register, logout } = useAuth();
@@ -24,6 +42,11 @@ export default function App() {
   const [selectedZonaId, setSelectedZonaId] = useState<string | null>(null);
   const [zonaToEdit, setZonaToEdit] = useState<Zona | null>(null);
 
+  // Sidebar and Catalog navigation state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeCatalogType, setActiveCatalogType] = useState<CatalogType>('especies');
+  const [catalogItemToEdit, setCatalogItemToEdit] = useState<CatalogItem | null>(null);
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -31,6 +54,15 @@ export default function App() {
       </View>
     );
   }
+
+  const handleNavigateFromSidebar = (screen: string, catalogType?: CatalogType) => {
+    if (screen === 'CatalogoList' && catalogType) {
+      setActiveCatalogType(catalogType);
+      setCurrentScreen(`CatalogoList_${catalogType}` as ScreenName);
+    } else {
+      setCurrentScreen(screen as ScreenName);
+    }
+  };
 
   const renderAuthenticatedApp = () => {
     switch (currentScreen) {
@@ -113,11 +145,59 @@ export default function App() {
             onSuccess={() => setCurrentScreen('ArbolList')}
           />
         );
+
+      // Catalogs mapping
+      case 'CatalogoList_especies':
+      case 'CatalogoList_estados-arbol':
+      case 'CatalogoList_estados-estanque':
+      case 'CatalogoList_estados-agua':
+      case 'CatalogoList_tipos-sensor':
+        return (
+          <CatalogoListScreen
+            type={activeCatalogType}
+            onOpenMenu={() => setIsSidebarOpen(true)}
+            onAdd={() => setCurrentScreen('CatalogoAdd')}
+            onEdit={(item) => {
+              setCatalogItemToEdit(item);
+              setCurrentScreen('CatalogoEdit');
+            }}
+          />
+        );
+
+      case 'CatalogoAdd':
+        return (
+          <CatalogoFormScreen
+            type={activeCatalogType}
+            onBack={() => setCurrentScreen(`CatalogoList_${activeCatalogType}` as ScreenName)}
+            onSuccess={() => setCurrentScreen(`CatalogoList_${activeCatalogType}` as ScreenName)}
+          />
+        );
+
+      case 'CatalogoEdit':
+        if (!catalogItemToEdit) {
+          setCurrentScreen(`CatalogoList_${activeCatalogType}` as ScreenName);
+          return null;
+        }
+        return (
+          <CatalogoFormScreen
+            type={activeCatalogType}
+            item={catalogItemToEdit}
+            onBack={() => {
+              setCatalogItemToEdit(null);
+              setCurrentScreen(`CatalogoList_${activeCatalogType}` as ScreenName);
+            }}
+            onSuccess={() => {
+              setCatalogItemToEdit(null);
+              setCurrentScreen(`CatalogoList_${activeCatalogType}` as ScreenName);
+            }}
+          />
+        );
+
       case 'ParqueList':
       default:
         return (
           <ParqueListScreen
-            onLogout={logout}
+            onOpenMenu={() => setIsSidebarOpen(true)}
             onAdd={() => setCurrentScreen('ParqueAdd')}
             onSelect={(id) => {
               setSelectedParqueId(id);
@@ -130,6 +210,15 @@ export default function App() {
 
   return (
     <View style={styles.container}>
+      {user && (
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          currentScreen={currentScreen}
+          onNavigate={handleNavigateFromSidebar}
+          onLogout={logout}
+        />
+      )}
       {user ? (
         renderAuthenticatedApp()
       ) : isRegistering ? (

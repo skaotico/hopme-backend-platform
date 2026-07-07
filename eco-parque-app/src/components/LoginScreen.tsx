@@ -35,7 +35,7 @@ export function LoginScreen({ onLoginSuccess, onGoToRegister, login, loading }: 
           <View style={styles.iconContainer}>
              <MaterialIcons name="eco" size={42} color="#14B8A6" />
           </View>
-          <Text style={styles.title}>EcoParque</Text>
+          <Text style={styles.title}>Home Labs - Monitor</Text>
           <Text style={styles.subtitle}>Ingresa a tu cuenta para continuar</Text>
         </View>
 
