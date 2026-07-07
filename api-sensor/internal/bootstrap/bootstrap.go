@@ -96,7 +96,20 @@ func Run() {
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		logger.Info(fmt.Sprintf("[SENSOR-SERVICE] Servidor HTTP escuchando en el puerto %s", cfg.Port))
+		fmt.Printf(`
+========================================================================
+  ____  _____ _   _ ____   ___  ____  
+ / ___|| ____| \ | / ___| / _ \|  _ \ 
+ \___ \|  _| |  \| \___ \| | | | |_) |
+  ___) | |___| |\  |___) | |_| |  _ < 
+ |____/|_____|_| \_|____/ \___/|_| \_\
+                                                    
+         HOMELAB COLLECTOR PLATFORM - SENSOR SERVICE V1.0
+========================================================================
+ [+] PUERTO:          %s
+========================================================================
+`, cfg.Port)
+		logger.Info("[SENSOR-SERVICE] Servidor HTTP escuchando", slog.String("addr", ":"+cfg.Port))
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("[SENSOR-SERVICE] Error al arrancar el servidor HTTP", slog.Any("error", err))
 			os.Exit(1)

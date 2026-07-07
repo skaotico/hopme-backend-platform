@@ -1,0 +1,488 @@
+basePath: /api/v1
+definitions:
+  model.Alerta:
+    properties:
+      estado:
+        type: string
+      fecha_alerta:
+        type: string
+      id:
+        type: string
+      observacion:
+        type: string
+      sensor_id:
+        type: string
+      tipo:
+        type: string
+      umbral:
+        type: number
+      valor_detectado:
+        type: number
+    type: object
+  model.CreateAlertaRequest:
+    properties:
+      fecha_alerta:
+        type: string
+      observacion:
+        type: string
+      tipo:
+        type: string
+      umbral:
+        type: number
+      valor_detectado:
+        type: number
+    type: object
+  model.CreateLecturaRequest:
+    properties:
+      bateria_porcentaje:
+        type: integer
+      fecha_lectura:
+        type: string
+      observacion:
+        type: string
+      valor:
+        type: number
+    type: object
+  model.CreateSensorRequest:
+    properties:
+      arbol_id:
+        type: string
+      codigo:
+        type: string
+      estanque_id:
+        type: string
+      fabricante:
+        type: string
+      fecha_instalacion:
+        type: string
+      modelo:
+        type: string
+      tipo_sensor_id:
+        type: string
+    type: object
+  model.LecturaSensor:
+    properties:
+      bateria_porcentaje:
+        type: integer
+      fecha_lectura:
+        type: string
+      id:
+        type: string
+      observacion:
+        type: string
+      sensor_id:
+        type: string
+      valor:
+        type: number
+    type: object
+  model.Sensor:
+    properties:
+      activo:
+        type: boolean
+      arbol_id:
+        type: string
+      codigo:
+        type: string
+      estanque_id:
+        type: string
+      fabricante:
+        type: string
+      fecha_instalacion:
+        type: string
+      id:
+        type: string
+      modelo:
+        type: string
+      tipo_sensor_id:
+        type: string
+    type: object
+  model.UpdateAlertaStatusRequest:
+    properties:
+      estado:
+        type: string
+      observacion:
+        type: string
+    type: object
+  model.UpdateSensorRequest:
+    properties:
+      activo:
+        type: boolean
+      arbol_id:
+        type: string
+      codigo:
+        type: string
+      estanque_id:
+        type: string
+      fabricante:
+        type: string
+      fecha_instalacion:
+        type: string
+      modelo:
+        type: string
+      tipo_sensor_id:
+        type: string
+    type: object
+  response.APIError:
+    properties:
+      code:
+        type: string
+      details:
+        type: string
+      message:
+        type: string
+    type: object
+  response.APIResponse:
+    properties:
+      data: {}
+      error:
+        $ref: '#/definitions/response.APIError'
+      success:
+        type: boolean
+    type: object
+host: localhost:9096
+info:
+  contact:
+    name: Skaotico
+  description: Microservicio de gestión de sensores (iot.sensor, readings, alerts).
+    Parte de la Homelab Collector Platform.
+  title: Homelab Platform - API Sensor
+  version: "1.0"
+paths:
+  /alertas:
+    get:
+      description: Retorna la lista de alertas del sistema, con filtros opcionales
+      parameters:
+      - description: Filtrar por UUID de sensor
+        in: query
+        name: sensor_id
+        type: string
+      - description: Filtrar por estado (e.g. activa, resuelta)
+        in: query
+        name: estado
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Alerta'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Listar alertas
+      tags:
+      - alertas
+  /alertas/{id}/estado:
+    put:
+      consumes:
+      - application/json
+      description: Actualiza el estado (activa, resuelta, etc.) y observaciones de
+        una alerta
+      parameters:
+      - description: UUID de la alerta
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Datos de actualización de la alerta
+        in: body
+        name: estado
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateAlertaStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Alerta'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Actualizar estado de alerta
+      tags:
+      - alertas
+  /health:
+    get:
+      description: Verifica que el servicio Sensor está operativo
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check del servicio
+      tags:
+      - health
+  /sensores:
+    get:
+      description: Retorna la lista de sensores filtrada opcionalmente por arbol_id
+        o estanque_id
+      parameters:
+      - description: Filtrar por UUID de árbol
+        in: query
+        name: arbol_id
+        type: string
+      - description: Filtrar por UUID de estanque
+        in: query
+        name: estanque_id
+        type: string
+      - description: Filtrar por estado activo
+        in: query
+        name: activo
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Sensor'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Listar sensores
+      tags:
+      - sensores
+    post:
+      consumes:
+      - application/json
+      description: Registra un nuevo sensor de monitoreo
+      parameters:
+      - description: Datos del sensor a registrar
+        in: body
+        name: sensor
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateSensorRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Sensor'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Registrar un sensor
+      tags:
+      - sensores
+  /sensores/{id}:
+    delete:
+      description: Elimina un sensor de la base de datos
+      parameters:
+      - description: UUID del sensor
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Eliminar un sensor
+      tags:
+      - sensores
+    get:
+      description: Retorna los datos detallados de un sensor específico
+      parameters:
+      - description: UUID del sensor
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Sensor'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Obtener un sensor por ID
+      tags:
+      - sensores
+    put:
+      consumes:
+      - application/json
+      description: Actualiza uno o más campos de un sensor existente
+      parameters:
+      - description: UUID del sensor
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Campos a actualizar
+        in: body
+        name: sensor
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateSensorRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Sensor'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Actualizar un sensor
+      tags:
+      - sensores
+  /sensores/{id}/alertas:
+    post:
+      consumes:
+      - application/json
+      description: Registra un evento de alerta disparado por un sensor
+      parameters:
+      - description: UUID del sensor
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Datos de la alerta
+        in: body
+        name: alerta
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateAlertaRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Alerta'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Registrar alerta de sensor
+      tags:
+      - alertas
+  /sensores/{id}/lecturas:
+    get:
+      description: Retorna el histórico de lecturas reportadas por un sensor específico
+      parameters:
+      - description: UUID del sensor
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.LecturaSensor'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Listar lecturas de un sensor
+      tags:
+      - lecturas
+    post:
+      consumes:
+      - application/json
+      description: Registra una nueva lectura/medición reportada por un sensor
+      parameters:
+      - description: UUID del sensor
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Datos de la lectura
+        in: body
+        name: lectura
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateLecturaRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.LecturaSensor'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Registrar lectura de sensor
+      tags:
+      - lecturas
+schemes:
+- http
+swagger: "2.0"
