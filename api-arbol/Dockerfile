@@ -9,12 +9,13 @@ WORKDIR /app
 
 # Descargar las dependencias del módulo Go
 COPY go.mod go.sum ./
-RUN go mod download || true
+RUN go mod download
 
 # Copiar el código fuente del microservicio
 COPY . .
 
 # Compilar un binario estático altamente optimizado
+# -s -w elimina la tabla de símbolos y debuggers reduciendo hasta un 40% el peso final
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/arbol-service ./cmd/api/main.go
 
 # Etapa 2: Imagen Final Minimalista (Alpine)
@@ -29,7 +30,7 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /app/arbol-service /app/arbol-service
 
 # Copiar las migraciones de la base de datos para ejecución en runtime
-COPY --from=builder /app/db/migrations /app/db/migrations || true
+COPY --from=builder /app/db/migrations /app/db/migrations
 
 # Exponer el puerto por defecto expuesto
 EXPOSE 9095
