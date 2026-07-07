@@ -57,6 +57,15 @@ func Run() {
 		}
 	}()
 
+	if cfg.RunMigrations {
+		logger.Info("[DATABASE] RUN_MIGRATIONS=true, ejecutando migraciones pendientes...")
+		err := postgres.RunMigrations(db, "db/migrations")
+		if err != nil {
+			logger.Error("[ARBOL-SERVICE] Error al ejecutar migraciones", slog.Any("error", err))
+			os.Exit(1)
+		}
+	}
+
 	// Repositorios
 	arbolRepo := postgres.NewArbolRepository(db, logger)
 	historialRepo := postgres.NewHistorialRepository(db, logger)
