@@ -1,205 +1,334 @@
 {
-  "openapi": "3.0.3",
-  "info": {
-    "title": "Homelab Collector Platform - Auth API",
-    "description": "API de Autenticación, Registro y Autorización (IAM) del Homelab Collector Platform.",
-    "version": "1.0.0"
-  },
-  "servers": [
-    {
-      "url": "/",
-      "description": "Servidor Dinámico (Auto-detectar)"
-    },
-    {
-      "url": "http://192.168.1.20:9090",
-      "description": "Servidor Homelab (IP)"
-    },
-    {
-      "url": "http://localhost:9090",
-      "description": "Desarrollo Local (localhost)"
-    }
-  ],
-  "paths": {
-    "/api/v1/health": {
-      "get": {
-        "summary": "Healthcheck del servicio",
-        "description": "Verifica el estado del servicio para monitoreo en Portainer o Docker.",
-        "responses": {
-          "200": {
-            "description": "Servicio saludable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": { "type": "string", "example": "ok" },
-                    "version": { "type": "string", "example": "1.3" }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/register": {
-      "post": {
-        "summary": "Registrar un nuevo usuario",
-        "description": "Crea una nueva cuenta de usuario asignándole el rol estándar USER.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["username", "email", "password"],
-                "properties": {
-                  "username": { "type": "string", "example": "skaotico" },
-                  "email": { "type": "string", "example": "skaotico@homelab.local" },
-                  "password": { "type": "string", "example": "secret123" }
-                }
-              }
-            }
-          }
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "Microservicio de gestión de zonas dentro de ecoparques. Parte de la Homelab Collector Platform.",
+        "title": "Homelab Platform - API Zona",
+        "contact": {
+            "name": "Skaotico"
         },
-        "responses": {
-          "201": {
-            "description": "Usuario creado exitosamente",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": { "type": "string", "format": "uuid" },
-                    "username": { "type": "string" },
-                    "email": { "type": "string" },
-                    "display_name": { "type": "string" },
-                    "is_active": { "type": "boolean" },
-                    "is_verified": { "type": "boolean" },
-                    "created_at": { "type": "string" }
-                  }
-                }
-              }
-            }
-          },
-          "400": { "description": "Datos de entrada inválidos" },
-          "409": { "description": "El nombre de usuario o correo electrónico ya existe" }
-        }
-      }
+        "version": "1.0"
     },
-    "/api/v1/auth/login": {
-      "post": {
-        "summary": "Iniciar sesión de usuario",
-        "description": "Verifica credenciales del usuario, emite un token JWT con roles y permisos, y setea una cookie segura `refresh_token`.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["email", "password"],
-                "properties": {
-                  "email": { "type": "string", "example": "skaotico@homelab.local" },
-                  "password": { "type": "string", "example": "secret123" }
+    "host": "localhost:9092",
+    "basePath": "/api/v1",
+    "paths": {
+        "/health": {
+            "get": {
+                "description": "Verifica que el servicio Zona está operativo",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Health check del servicio",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
                 }
-              }
             }
-          }
         },
-        "responses": {
-          "200": {
-            "description": "Autenticación exitosa",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "token": { "type": "string", "description": "Token JWT firmado" }
-                  }
+        "/zonas": {
+            "get": {
+                "description": "Retorna la lista completa de zonas registradas",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "zonas"
+                ],
+                "summary": "Listar zonas",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Zona"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
                 }
-              }
-            }
-          },
-          "401": { "description": "Credenciales inválidas" }
-        }
-      }
-    },
-    "/api/v1/auth/me": {
-      "get": {
-        "summary": "Obtener perfil del usuario logueado",
-        "description": "Retorna la información básica del usuario, roles y permisos extraídos del token JWT.",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Información de sesión recuperada",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "user_id": { "type": "string", "format": "uuid" },
-                    "username": { "type": "string" },
-                    "email": { "type": "string" },
-                    "roles": { "type": "array", "items": { "type": "string" } },
-                    "permissions": { "type": "array", "items": { "type": "string" } }
-                  }
+            },
+            "post": {
+                "description": "Crea una nueva zona asociada a un ecoparque",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "zonas"
+                ],
+                "summary": "Crear una zona",
+                "parameters": [
+                    {
+                        "description": "Datos de la zona a crear",
+                        "name": "zona",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateZonaRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.Zona"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
                 }
-              }
             }
-          },
-          "401": { "description": "No autorizado o token ausente/inválido" }
-        }
-      }
-    },
-    "/api/v1/auth/refresh": {
-      "post": {
-        "summary": "Refrescar token JWT",
-        "description": "Emite un nuevo JWT si la cookie `refresh_token` es válida y no ha expirado ni está revocada.",
-        "responses": {
-          "200": {
-            "description": "Nuevo token emitido",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "token": { "type": "string" }
-                  }
+        },
+        "/zonas/{id}": {
+            "get": {
+                "description": "Retorna los datos de una zona específica",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "zonas"
+                ],
+                "summary": "Obtener una zona por ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID de la zona",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Zona"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
                 }
-              }
+            },
+            "put": {
+                "description": "Actualiza los campos de una zona existente",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "zonas"
+                ],
+                "summary": "Actualizar una zona",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID de la zona",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Campos a actualizar",
+                        "name": "zona",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateZonaRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Zona"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Elimina una zona por su ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "zonas"
+                ],
+                "summary": "Eliminar una zona",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID de la zona",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
             }
-          },
-          "401": { "description": "Token inválido, expirado o cookie ausente" }
         }
-      }
     },
-    "/api/v1/auth/logout": {
-      "post": {
-        "summary": "Cerrar sesión de usuario",
-        "description": "Añade el JWT actual a la blacklist y limpia la cookie del `refresh_token`.",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
-          "204": { "description": "Sesión cerrada correctamente" },
-          "401": { "description": "No autorizado" }
+    "definitions": {
+        "model.CreateZonaRequest": {
+            "type": "object",
+            "properties": {
+                "area_m2": {
+                    "type": "number"
+                },
+                "descripcion": {
+                    "type": "string"
+                },
+                "ecoparque_id": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.UpdateZonaRequest": {
+            "type": "object",
+            "properties": {
+                "area_m2": {
+                    "type": "number"
+                },
+                "descripcion": {
+                    "type": "string"
+                },
+                "ecoparque_id": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Zona": {
+            "type": "object",
+            "properties": {
+                "area_m2": {
+                    "type": "number"
+                },
+                "descripcion": {
+                    "type": "string"
+                },
+                "ecoparque_id": {
+                    "type": "string"
+                },
+                "fecha_actualizacion": {
+                    "type": "string"
+                },
+                "fecha_creacion": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "details": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "error": {
+                    "$ref": "#/definitions/response.APIError"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
         }
-      }
     }
-  },
-  "components": {
-    "securitySchemes": {
-      "BearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
-      }
-    }
-  }
 }

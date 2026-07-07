@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -56,8 +57,6 @@ func Run() {
 		}
 	}()
 
-
-
 	// Dependencias
 	zonaRepo := postgres.NewZonaRepository(db)
 	zonaUC := usecase.NewZonaUseCase(zonaRepo)
@@ -67,7 +66,6 @@ func Run() {
 
 	// Router
 	r := router.NewRouter(zonaUC, loggingMid)
-	
 
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -80,19 +78,30 @@ func Run() {
 	// Canal para escuchar errores de arranque
 	serverErrors := make(chan error, 1)
 	go func() {
-		// Loguear endpoints como JSON para observabilidad
-		logger.Info("[ZONA-SERVICE] Endpoints disponibilizados",
-			slog.String("swagger_ui", "http://localhost:"+cfg.Port+"/swagger/"),
-			slog.String("swagger_json", "http://localhost:"+cfg.Port+"/swagger/doc.json"),
-			slog.Group("endpoints",
-				slog.String("health", "GET /api/v1/health"),
-				slog.String("crear_zona", "POST /api/v1/zonas"),
-				slog.String("listar_zonas", "GET /api/v1/zonas"),
-				slog.String("obtener_zona", "GET /api/v1/zonas/{id}"),
-				slog.String("actualizar_zona", "PUT /api/v1/zonas/{id}"),
-				slog.String("eliminar_zona", "DELETE /api/v1/zonas/{id}"),
-			),
-		)
+		// Imprimir Banner de arranque en consola de forma limpia
+		fmt.Printf(`
+========================================================================
+  _______  ___   _   _  ___      ____   _____  ____  
+ |__  /  \/   \ | \ | |/ _ \    / ___| |  ___||  _ \ 
+   / /| |  | | ||  \| | | | |   \___ \ | |_   | |_) |
+  / /_| |  |_| || |\  | |_| |    ___) ||  _|  |  _ < 
+ /____|___\___/ |_| \_|\___/    |____/ |_|    |_| \_\
+                                                      
+       HOMELAB COLLECTOR PLATFORM SKAOTICO V2 - ZONA SERVICE V1.0
+========================================================================
+ [+] PUERTO:          %s
+ [+] SWAGGER UI:      http://localhost:%s/swagger/
+ [+] SWAGGER JSON:    http://localhost:%s/swagger/doc.json
+
+ [ENDPOINTS DISPONIBILIZADOS]:
+  -> GET    /api/v1/health          [Estado del Servicio (Público)]
+  -> POST   /api/v1/zonas           [Crear zona]
+  -> GET    /api/v1/zonas           [Listar zonas]
+  -> GET    /api/v1/zonas/{id}      [Obtener zona por ID]
+  -> PUT    /api/v1/zonas/{id}      [Actualizar zona]
+  -> DELETE /api/v1/zonas/{id}      [Eliminar zona]
+========================================================================
+`, cfg.Port, cfg.Port, cfg.Port)
 
 		logger.Info("[ZONA-SERVICE] Servidor HTTP escuchando",
 			slog.String("addr", ":"+cfg.Port),
