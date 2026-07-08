@@ -8,10 +8,31 @@ import {
   RefreshControl,
   StatusBar,
   Alert,
-  Image,
   Animated,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import * as MapLibreGL from '@maplibre/maplibre-react-native';
+
+MapLibreGL.default.setAccessToken(null);
+
+const osmStyle = JSON.stringify({
+  version: 8,
+  sources: {
+    osm: {
+      type: 'raster',
+      tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      attribution: '&copy; OpenStreetMap Contributors',
+      maxzoom: 19,
+    },
+  },
+  layers: [
+    {
+      id: 'osm',
+      type: 'raster',
+      source: 'osm',
+    },
+  ],
+});
 import { MaterialIcons } from '@expo/vector-icons';
 import { useArboles } from '../hooks/useArboles';
 import { CatalogoService } from '../services/catalogo.service';
@@ -24,14 +45,16 @@ interface ArbolListScreenProps {
   onBack: () => void;
   onAdd: () => void;
   onEdit: (arbol: Arbol) => void;
+  onSensores?: (arbol: Arbol) => void;
 }
 
 // Fade & Slide animated card item
-function AnimatedCard({ item, index, onEdit, onDelete, especies, estados }: {
+function AnimatedCard({ item, index, onEdit, onDelete, onSensores, especies, estados }: {
   item: Arbol;
   index: number;
   onEdit: () => void;
   onDelete: () => void;
+  onSensores?: () => void;
   especies: EspecieArbol[];
   estados: EstadoArbol[];
 }) {
@@ -115,19 +138,26 @@ function AnimatedCard({ item, index, onEdit, onDelete, especies, estados }: {
 
       {item.latitud != null && item.longitud != null && (
         <View style={styles.mapContainer}>
-          <MapView
+          <MapLibreGL.MapView
             style={styles.map}
-            initialRegion={{
-              latitude: item.latitud,
-              longitude: item.longitud,
-              latitudeDelta: 0.002,
-              longitudeDelta: 0.002,
-            }}
+            styleJSON={osmStyle}
             scrollEnabled={false}
             zoomEnabled={false}
+            pitchEnabled={false}
+            rotateEnabled={false}
+            logoEnabled={false}
+            attributionEnabled={false}
           >
-            <Marker coordinate={{ latitude: item.latitud, longitude: item.longitud }} />
-          </MapView>
+            <MapLibreGL.Camera
+              zoomLevel={16}
+              centerCoordinate={[item.longitud, item.latitud]}
+              animationDuration={0}
+            />
+            <MapLibreGL.PointAnnotation
+              id={`marker-${item.id}`}
+              coordinate={[item.longitud, item.latitud]}
+            />
+          </MapLibreGL.MapView>
         </View>
       )}
 
@@ -137,6 +167,12 @@ function AnimatedCard({ item, index, onEdit, onDelete, especies, estados }: {
         </Text>
 
         <View style={styles.cardActions}>
+          {onSensores && (
+            <TouchableOpacity style={styles.actionButton} onPress={onSensores} activeOpacity={0.7}>
+              <MaterialIcons name="sensors" size={16} color="#F59E0B" />
+              <Text style={[styles.actionButtonText, { color: '#F59E0B' }]}>Sensores</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.actionButton} onPress={onEdit} activeOpacity={0.7}>
             <MaterialIcons name="edit" size={16} color="#14B8A6" />
             <Text style={styles.actionButtonText}>Editar</Text>
@@ -155,7 +191,7 @@ function AnimatedCard({ item, index, onEdit, onDelete, especies, estados }: {
   );
 }
 
-export function ArbolListScreen({ zonaId, onBack, onAdd, onEdit }: ArbolListScreenProps) {
+export function ArbolListScreen({ zonaId, onBack, onAdd, onEdit, onSensores }: ArbolListScreenProps) {
   const { arboles, loading, error, refresh, removeArbol } = useArboles(zonaId);
 
   // Catalogs to resolve names
@@ -221,20 +257,6 @@ export function ArbolListScreen({ zonaId, onBack, onAdd, onEdit }: ArbolListScre
         <Text style={styles.title}>Árboles de la Zona</Text>
       </View>
 
-      {/* Holographic 3D Tree Dashboard Widget */}
-      <View style={styles.dashboardCard}>
-        <View style={styles.dashboardInfo}>
-          <Text style={styles.dashboardTitle}>Holograma Dasométrico</Text>
-          <Text style={styles.dashboardDesc}>
-            Monitoreo en tiempo real de la vitalidad y crecimiento de los especímenes plantados en esta zona.
-          </Text>
-        </View>
-        <Image
-          source={require('../../assets/holographic_tree.png')}
-          style={styles.dashboardImage}
-          resizeMode="cover"
-        />
-      </View>
 
       {error && (
         <View style={styles.errorContainer}>
@@ -264,6 +286,7 @@ export function ArbolListScreen({ zonaId, onBack, onAdd, onEdit }: ArbolListScre
             index={index}
             onEdit={() => onEdit(item)}
             onDelete={() => handleDelete(item)}
+            onSensores={onSensores ? () => onSensores(item) : undefined}
             especies={especies}
             estados={estados}
           />

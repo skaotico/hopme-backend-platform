@@ -35,42 +35,6 @@ export const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: -0.5,
   },
-  
-  // Dashboard panel with 3D Holographic tree image
-  dashboardCard: {
-    marginHorizontal: 24,
-    marginBottom: 20,
-    borderRadius: 28,
-    backgroundColor: '#112226',
-    borderWidth: 1,
-    borderColor: '#1D343B',
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    overflow: 'hidden',
-  },
-  dashboardInfo: {
-    flex: 1,
-    paddingRight: 16,
-  },
-  dashboardTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 6,
-  },
-  dashboardDesc: {
-    fontSize: 13,
-    color: '#8FA3A9',
-    lineHeight: 18,
-    fontWeight: '500',
-  },
-  dashboardImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 16,
-  },
 
   errorContainer: {
     flexDirection: 'row',

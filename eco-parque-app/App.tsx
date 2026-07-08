@@ -11,6 +11,7 @@ import { ZonaEditScreen } from './src/components/ZonaEditScreen';
 import { ArbolListScreen } from './src/components/ArbolListScreen';
 import { ArbolAddScreen } from './src/components/ArbolAddScreen';
 import { ArbolEditScreen } from './src/components/ArbolEditScreen';
+import { SensorListScreen } from './src/components/SensorListScreen';
 import { Sidebar } from './src/components/Sidebar';
 import { CatalogoListScreen } from './src/components/catalogo/CatalogoListScreen';
 import { CatalogoFormScreen } from './src/components/catalogo/CatalogoFormScreen';
@@ -27,6 +28,7 @@ type ScreenName =
   | 'ArbolList'
   | 'ArbolAdd'
   | 'ArbolEdit'
+  | 'SensorList'
   | 'CatalogoList_especies'
   | 'CatalogoList_estados-arbol'
   | 'CatalogoList_estados-estanque'
@@ -43,6 +45,8 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenName>('ParqueList');
   const [selectedParqueId, setSelectedParqueId] = useState<string | null>(null);
   const [selectedZonaId, setSelectedZonaId] = useState<string | null>(null);
+  const [selectedArbolId, setSelectedArbolId] = useState<string | null>(null);
+  const [selectedArbolCodigo, setSelectedArbolCodigo] = useState<string | undefined>(undefined);
   const [zonaToEdit, setZonaToEdit] = useState<Zona | null>(null);
   const [arbolToEdit, setArbolToEdit] = useState<Arbol | null>(null);
 
@@ -139,6 +143,24 @@ export default function App() {
               setArbolToEdit(arbol);
               setCurrentScreen('ArbolEdit');
             }}
+            onSensores={(arbol) => {
+              setSelectedArbolId(arbol.id);
+              setSelectedArbolCodigo(arbol.codigo);
+              setCurrentScreen('SensorList');
+            }}
+          />
+        );
+
+      case 'SensorList':
+        if (!selectedArbolId) {
+          setCurrentScreen('ArbolList');
+          return null;
+        }
+        return (
+          <SensorListScreen
+            arbolId={selectedArbolId}
+            arbolCodigo={selectedArbolCodigo}
+            onBack={() => setCurrentScreen('ArbolList')}
           />
         );
       case 'ArbolAdd':

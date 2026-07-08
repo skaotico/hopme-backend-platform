@@ -1,5 +1,6 @@
 import { fetchWithAuth, API_AUTH_URL, TOKEN_KEY } from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 
 export const AuthService = {
   /**
@@ -18,17 +19,40 @@ export const AuthService = {
    * Si es exitoso, guarda el token devuelto.
    */
   async login(email: string, password: string) {
-    const response = await fetch(`${API_AUTH_URL}/auth/login`, {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-    const result = await response.json();
+    const url = `${API_AUTH_URL}/auth/login`;
+    const body = JSON.stringify({ email, password });
     
-    if (result.success && result.data?.token) {
-      await AsyncStorage.setItem(TOKEN_KEY, result.data.token);
+    const curlCommand = `curl -X POST ${url} \\\n  -H "Content-Type: application/json" \\\n  -d '${body}'`;
+    console.log('--- cURL DE LOGIN ---');
+    console.log(curlCommand);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body,
+      });
+      
+      const responseText = await response.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        result = { error: 'No se pudo parsear el JSON de respuesta.' };
+      }
+      
+      if (result.success && result.data?.token) {
+        await AsyncStorage.setItem(TOKEN_KEY, result.data.token);
+      } else {
+        result.error = `${result.error || 'Credenciales incorrectas'}\n\n[RQ Headers]: Content-Type: application/json\n[RQ Body]: ${body}\n\n[RS Status]: ${response.status}\n[RS Body]: ${responseText.substring(0, 150)}\n\ncURL generado:\n${curlCommand}`;
+      }
+      
+      return result;
+    } catch (e: any) {
+      throw new Error(`${e.message}\n\n[RQ Headers]: Content-Type: application/json\n[RQ Body]: ${body}\n\n[RS Status]: NO HUBO RESPUESTA (Falló antes de llegar al servidor)\n\ncURL generado:\n${curlCommand}`);
     }
-    
-    return result;
   },
 
   /**

@@ -6,6 +6,7 @@ export const API_ZONA_URL = "http://192.168.1.27:9092/api/v1";
 export const API_FLORA_URL = "http://192.168.1.27:9093/api/v1";
 export const API_CATALOGO_URL = "http://192.168.1.27:9094/api/v1";
 export const API_ARBOL_URL = "http://192.168.1.27:9095/api/v1";
+export const API_SENSOR_URL = "http://192.168.1.27:9096/api/v1";
 
 
 

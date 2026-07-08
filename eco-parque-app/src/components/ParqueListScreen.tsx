@@ -1,6 +1,28 @@
 import React from 'react';
 import { View, Text, FlatList, ActivityIndicator, Alert, TouchableOpacity, RefreshControl, Platform, StatusBar } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import * as MapLibreGL from '@maplibre/maplibre-react-native';
+
+MapLibreGL.default.setAccessToken(null);
+
+const osmStyle = JSON.stringify({
+  version: 8,
+  sources: {
+    osm: {
+      type: 'raster',
+      tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      attribution: '&copy; OpenStreetMap Contributors',
+      maxzoom: 19,
+    },
+  },
+  layers: [
+    {
+      id: 'osm',
+      type: 'raster',
+      source: 'osm',
+    },
+  ],
+});
 import { MaterialIcons } from '@expo/vector-icons';
 import { useParques } from '../hooks/useParques';
 import { styles } from './ParqueListScreen.styles';
@@ -114,19 +136,26 @@ export function ParqueListScreen({ onOpenMenu, onAdd, onSelect }: ParqueListScre
               
               {lat !== null && lng !== null && (
                 <View style={styles.mapContainer}>
-                  <MapView
+                  <MapLibreGL.MapView
                     style={styles.map}
-                    initialRegion={{
-                      latitude: lat,
-                      longitude: lng,
-                      latitudeDelta: 0.01,
-                      longitudeDelta: 0.01,
-                    }}
+                    styleJSON={osmStyle}
                     scrollEnabled={false}
                     zoomEnabled={false}
+                    pitchEnabled={false}
+                    rotateEnabled={false}
+                    logoEnabled={false}
+                    attributionEnabled={false}
                   >
-                    <Marker coordinate={{ latitude: lat, longitude: lng }} />
-                  </MapView>
+                    <MapLibreGL.Camera
+                      zoomLevel={15}
+                      centerCoordinate={[lng, lat]}
+                      animationDuration={0}
+                    />
+                    <MapLibreGL.PointAnnotation
+                      id={`marker-${item.id}`}
+                      coordinate={[lng, lat]}
+                    />
+                  </MapLibreGL.MapView>
                 </View>
               )}
               
