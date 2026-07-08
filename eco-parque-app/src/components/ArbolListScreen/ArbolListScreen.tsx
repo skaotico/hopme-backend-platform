@@ -16,6 +16,7 @@ import { CatalogoService } from '../../services/catalogo.service';
 import { EspecieArbol, EstadoArbol } from '../../dto/catalogo.dto';
 import { Arbol } from '../../dto/arbol.dto';
 import { styles } from './ArbolListScreen.styles';
+import { FadeSlideCard, PressableScale } from '../ui/AnimatedCards';
 
 interface ArbolListScreenProps {
   zonaId: string;
@@ -25,7 +26,7 @@ interface ArbolListScreenProps {
   onSensores?: (arbol: Arbol) => void;
 }
 
-// Fade & Slide animated card item
+// Animated card item using FadeSlideCard and PressableScale
 function AnimatedCard({ item, index, onEdit, onDelete, onSensores, especies, estados }: {
   item: Arbol;
   index: number;
@@ -35,22 +36,6 @@ function AnimatedCard({ item, index, onEdit, onDelete, onSensores, especies, est
   especies: EspecieArbol[];
   estados: EstadoArbol[];
 }) {
-  const animatedValue = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(animatedValue, {
-      toValue: 1,
-      duration: 350,
-      delay: index * 100, // staggered animation
-      useNativeDriver: true,
-    }).start();
-  }, [index]);
-
-  const translateY = animatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [30, 0],
-  });
-
   const matchedEspecie = especies.find((e) => e.id === item.especie_id);
   const matchedEstado = estados.find((e) => e.id === item.estado_id);
 
@@ -76,72 +61,77 @@ function AnimatedCard({ item, index, onEdit, onDelete, onSensores, especies, est
   };
 
   return (
-    <Animated.View
-      style={[
-        styles.card,
-        {
-          opacity: animatedValue,
-          transform: [{ translateY }],
-        },
-      ]}
-    >
-      <View style={styles.cardContent}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardLabel}>CÓDIGO: {item.codigo || 'S/N'}</Text>
-          <View style={styles.badge}>
-            <MaterialIcons name="health-and-safety" size={14} color="#14B8A6" />
-            <Text style={styles.badgeText}>{getEstadoName()}</Text>
+    <FadeSlideCard delay={index * 50} style={{ marginBottom: 16 }}>
+      <PressableScale onPress={onSensores || onEdit}>
+        <View style={[styles.card, { position: 'relative', overflow: 'hidden' }]}>
+          {/* Hero Icon de fondo */}
+          <MaterialIcons 
+            name="park" 
+            size={120} 
+            color="rgba(20, 184, 166, 0.05)" 
+            style={{ position: 'absolute', right: -20, bottom: -20 }} 
+          />
+
+          <View style={styles.cardContent}>
+            <View style={styles.cardHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <MaterialIcons name="park" size={16} color="#14B8A6" />
+                <Text style={styles.cardLabel}>CÓDIGO: {item.codigo || 'S/N'}</Text>
+              </View>
+              <View style={styles.badge}>
+                <MaterialIcons name="health-and-safety" size={14} color="#14B8A6" />
+                <Text style={styles.badgeText}>{getEstadoName()}</Text>
+              </View>
+            </View>
+
+            <Text style={styles.cardTitle}>{getEspecieTitle()}</Text>
+
+            {getEspecieSub() && (
+              <Text style={styles.cardSubtitle}>
+                <MaterialIcons name="spa" size={14} color="#8FA3A9" /> {getEspecieSub()}
+              </Text>
+            )}
+
+            <Text style={styles.cardSubtitle}>
+              <MaterialIcons name="height" size={14} color="#8FA3A9" /> Altura: {item.altura_m ? `${item.altura_m}m` : '-'} | Copa: {item.ancho_copa_m ? `${item.ancho_copa_m}m` : '-'} | Tronco: {item.diametro_tronco_cm ? `${item.diametro_tronco_cm}cm` : '-'}
+            </Text>
+
+            {item.observaciones && (
+              <Text style={styles.cardSubtitle}>
+                <MaterialIcons name="chat-bubble-outline" size={14} color="#8FA3A9" /> {item.observaciones}
+              </Text>
+            )}
+          </View>
+
+          <View style={styles.cardFooter}>
+            <Text style={styles.statsText}>
+              Plantación: {item.fecha_plantacion ? new Date(item.fecha_plantacion).toLocaleDateString() : 'N/A'}
+            </Text>
+
+            <View style={styles.cardActions}>
+              {onSensores && (
+                <TouchableOpacity style={styles.actionButton} onPress={onSensores} activeOpacity={0.7}>
+                  <MaterialIcons name="sensors" size={16} color="#F59E0B" />
+                  <Text style={[styles.actionButtonText, { color: '#F59E0B' }]}>Sensores</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.actionButton} onPress={onEdit} activeOpacity={0.7}>
+                <MaterialIcons name="edit" size={16} color="#14B8A6" />
+                <Text style={styles.actionButtonText}>Editar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.actionButtonDanger]}
+                onPress={onDelete}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="delete-outline" size={16} color="#F43F5E" />
+                <Text style={[styles.actionButtonText, styles.actionButtonTextDanger]}>Borrar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-
-        <Text style={styles.cardTitle}>{getEspecieTitle()}</Text>
-
-        {getEspecieSub() && (
-          <Text style={styles.cardSubtitle}>
-            <MaterialIcons name="spa" size={14} color="#8FA3A9" /> {getEspecieSub()}
-          </Text>
-        )}
-
-        <Text style={styles.cardSubtitle}>
-          <MaterialIcons name="height" size={14} color="#8FA3A9" /> Altura: {item.altura_m ? `${item.altura_m}m` : '-'} | Copa: {item.ancho_copa_m ? `${item.ancho_copa_m}m` : '-'} | Tronco: {item.diametro_tronco_cm ? `${item.diametro_tronco_cm}cm` : '-'}
-        </Text>
-
-        {item.observaciones && (
-          <Text style={styles.cardSubtitle}>
-            <MaterialIcons name="chat-bubble-outline" size={14} color="#8FA3A9" /> {item.observaciones}
-          </Text>
-        )}
-      </View>
-
-      {/* Mapa temporalmente deshabilitado */}
-
-      <View style={styles.cardFooter}>
-        <Text style={styles.statsText}>
-          Plantación: {item.fecha_plantacion ? new Date(item.fecha_plantacion).toLocaleDateString() : 'N/A'}
-        </Text>
-
-        <View style={styles.cardActions}>
-          {onSensores && (
-            <TouchableOpacity style={styles.actionButton} onPress={onSensores} activeOpacity={0.7}>
-              <MaterialIcons name="sensors" size={16} color="#F59E0B" />
-              <Text style={[styles.actionButtonText, { color: '#F59E0B' }]}>Sensores</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity style={styles.actionButton} onPress={onEdit} activeOpacity={0.7}>
-            <MaterialIcons name="edit" size={16} color="#14B8A6" />
-            <Text style={styles.actionButtonText}>Editar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.actionButtonDanger]}
-            onPress={onDelete}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons name="delete-outline" size={16} color="#F43F5E" />
-            <Text style={[styles.actionButtonText, styles.actionButtonTextDanger]}>Borrar</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Animated.View>
+      </PressableScale>
+    </FadeSlideCard>
   );
 }
 

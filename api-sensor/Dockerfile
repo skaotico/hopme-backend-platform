@@ -11,8 +11,11 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copiar el código fuente del microservicio
-COPY . .
+# Copiar estrictamente las carpetas del código fuente del microservicio
+# Esto evita que comandos como 'COPY . .' arrastren archivos basura o temporales
+COPY cmd/ ./cmd/
+COPY internal/ ./internal/
+COPY db/ ./db/
 
 # Compilar un binario estático altamente optimizado
 # -s -w elimina la tabla de símbolos y debuggers reduciendo hasta un 40% el peso final
@@ -32,7 +35,7 @@ COPY --from=builder /app/sensor-service /app/sensor-service
 # Copiar las migraciones de la base de datos para ejecución en runtime
 COPY --from=builder /app/db/migrations /app/db/migrations
 
-# Exponer el puerto por defecto expuesto
+# Exponer el puerto por defecto
 EXPOSE 9096
 
 # Definir variables de entorno de producción por defecto

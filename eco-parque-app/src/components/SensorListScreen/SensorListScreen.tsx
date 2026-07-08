@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,131 +8,96 @@ import {
   RefreshControl,
   StatusBar,
   StyleSheet,
-  Animated,
   ScrollView,
   Dimensions,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSensores, useLecturas, useAlertas } from '../../hooks/useSensores';
 import { Sensor, LecturaSensor } from '../../dto/sensor.dto';
 import { LineChart } from 'react-native-chart-kit';
+import { PressableScale, FadeSlideCard } from '../ui/AnimatedCards';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// ─── Colores ───────────────────────────────────────────────────────────────
+// ─── Colores Vibrantes ──────────────────────────────────────────────────────────
 const COLORS = {
-  bg: '#061114',
-  surface: '#0C1E22',
-  border: '#1D343B',
-  teal: '#14B8A6',
-  tealDim: 'rgba(20,184,166,0.12)',
-  tealBorder: 'rgba(20,184,166,0.25)',
-  amber: '#F59E0B',
-  rose: '#F43F5E',
-  text: '#FFFFFF',
-  muted: '#8FA3A9',
-  cardBg: '#0E2026',
+  bg: '#040d10',
+  surface: '#0d2227',
+  border: '#173b42',
+  teal: '#2DD4BF',
+  tealDim: 'rgba(45, 212, 191, 0.15)',
+  tealBorder: 'rgba(45, 212, 191, 0.3)',
+  amber: '#FBBF24',
+  rose: '#FB7185',
+  text: '#F8FAFC',
+  muted: '#94A3B8',
+  cardBg: '#0f262b',
+  gradientSelected: ['#0f3535', '#082121'] as const,
 };
 
-// ─── Animated Card genérica ─────────────────────────────────────────────────
-function FadeSlideCard({
-  children,
-  delay = 0,
-  style,
-}: {
-  children: React.ReactNode;
-  delay?: number;
-  style?: object;
-}) {
-  const anim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(anim, {
-      toValue: 1,
-      duration: 400,
-      delay,
-      useNativeDriver: true,
-    }).start();
-  }, []);
-  return (
-    <Animated.View
-      style={[
-        {
-          opacity: anim,
-          transform: [
-            {
-              translateY: anim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [24, 0],
-              }),
-            },
-          ],
-        },
-        style,
-      ]}
-    >
-      {children}
-    </Animated.View>
-  );
-}
+type RangoTiempo = 'hoy' | 'semana' | 'mes';
 
 // ─── Gráfico de humedad (react-native-chart-kit) ────────────────────────────
 function HumedadChart({ lecturas }: { lecturas: LecturaSensor[] }) {
   if (lecturas.length === 0) {
     return (
       <View style={styles.chartEmpty}>
-        <MaterialIcons name="show-chart" size={32} color={COLORS.muted} />
-        <Text style={styles.chartEmptyText}>Sin lecturas disponibles</Text>
+        <Feather name="activity" size={32} color={COLORS.muted} />
+        <Text style={styles.chartEmptyText}>Sin lecturas en este periodo</Text>
       </View>
     );
   }
 
-  // Preparamos datos
-  const recentLecturas = lecturas.slice(-15);
-  const chartData = recentLecturas.map(l => Math.round(l.valor * 10) / 10);
-  const labels = recentLecturas.map((_, i) => (i % 3 === 0 ? String(i) : ''));
+  // Reducir la cantidad de puntos si son muchos para no colapsar el gráfico
+  const maxPoints = 20;
+  const step = Math.max(1, Math.floor(lecturas.length / maxPoints));
+  const sampledLecturas = lecturas.filter((_, i) => i % step === 0).slice(-maxPoints);
 
-  // Asegurar que siempre hay datos para el gráfico
+  const chartData = sampledLecturas.map(l => Math.round(l.valor * 10) / 10);
+  const labels = sampledLecturas.map((_, i) => (i % 4 === 0 ? String(i) : ''));
   const data = chartData.length > 0 ? chartData : [0];
 
   return (
-    <View style={{ height: 220, width: '100%', alignItems: 'center' }}>
+    <View style={{ width: '100%', alignItems: 'center' }}>
       <LineChart
         data={{
           labels: labels,
-          datasets: [
-            {
-              data: data,
-            }
-          ]
+          datasets: [{ data: data }]
         }}
-        width={SCREEN_WIDTH - 64}
-        height={220}
+        width={SCREEN_WIDTH - 60}
+        height={200}
         withDots={true}
         withInnerLines={false}
-        withOuterLines={true}
+        withOuterLines={false}
         withVerticalLines={false}
         chartConfig={{
-          backgroundColor: COLORS.surface,
-          backgroundGradientFrom: COLORS.surface,
-          backgroundGradientTo: COLORS.surface,
+          backgroundColor: 'transparent',
+          backgroundGradientFrom: COLORS.cardBg,
+          backgroundGradientTo: COLORS.cardBg,
+          backgroundGradientFromOpacity: 0,
+          backgroundGradientToOpacity: 0,
           decimalPlaces: 1,
           color: (opacity = 1) => `rgba(45, 212, 191, ${opacity})`,
           labelColor: (opacity = 1) => `rgba(148, 163, 184, ${opacity})`,
-          style: {
-            borderRadius: 16
-          },
-          propsForDots: {
-            r: "4",
-            strokeWidth: "2",
-            stroke: COLORS.bg
-          }
+          style: { borderRadius: 16 },
+          propsForDots: { r: "4", strokeWidth: "2", stroke: COLORS.surface }
         }}
         bezier
-        style={{
-          marginVertical: 8,
-          borderRadius: 16
-        }}
+        style={{ marginVertical: 8, borderRadius: 16, paddingRight: 16 }}
       />
+      
+      {/* Explicación del gráfico */}
+      <View style={styles.chartLegendContainer}>
+        <View style={styles.chartLegendRow}>
+          <View style={[styles.legendDot, { backgroundColor: COLORS.teal }]} />
+          <Text style={styles.chartLegendText}>Eje Y: Porcentaje de Humedad (%)</Text>
+        </View>
+        <View style={styles.chartLegendRow}>
+          <View style={[styles.legendDot, { backgroundColor: COLORS.muted }]} />
+          <Text style={styles.chartLegendText}>Eje X: Secuencia temporal de lecturas</Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -140,31 +105,16 @@ function HumedadChart({ lecturas }: { lecturas: LecturaSensor[] }) {
 // ─── Badge de estado sensor ─────────────────────────────────────────────────
 function SensorBadge({ activo }: { activo: boolean }) {
   return (
-    <View
-      style={[
-        styles.badge,
-        activo ? styles.badgeActive : styles.badgeInactive,
-      ]}
-    >
-      <View
-        style={[
-          styles.badgeDot,
-          { backgroundColor: activo ? COLORS.teal : COLORS.rose },
-        ]}
-      />
-      <Text
-        style={[
-          styles.badgeText,
-          { color: activo ? COLORS.teal : COLORS.rose },
-        ]}
-      >
-        {activo ? 'Activo' : 'Inactivo'}
+    <View style={[styles.badge, activo ? styles.badgeActive : styles.badgeInactive]}>
+      <View style={[styles.badgeDot, { backgroundColor: activo ? COLORS.teal : COLORS.rose }]} />
+      <Text style={[styles.badgeText, { color: activo ? COLORS.teal : COLORS.rose }]}>
+        {activo ? 'Online' : 'Offline'}
       </Text>
     </View>
   );
 }
 
-// ─── Card de sensor ──────────────────────────────────────────────────────────
+// ─── Card de sensor (Horizontal Carousel Item) ───────────────────────────────
 function SensorCard({
   sensor,
   index,
@@ -176,54 +126,49 @@ function SensorCard({
   onPress: () => void;
   isSelected: boolean;
 }) {
-  return (
-    <FadeSlideCard delay={index * 80} style={{ marginBottom: 12 }}>
-      <TouchableOpacity
-        style={[styles.sensorCard, isSelected && styles.sensorCardSelected]}
-        onPress={onPress}
-        activeOpacity={0.8}
-      >
-        <View style={styles.sensorCardLeft}>
-          <View
-            style={[
-              styles.sensorIcon,
-              isSelected && { backgroundColor: COLORS.teal },
-            ]}
-          >
-            <MaterialIcons
-              name="sensors"
-              size={20}
-              color={isSelected ? COLORS.bg : COLORS.teal}
-            />
-          </View>
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={styles.sensorCodigo}>{sensor.codigo || 'S/C'}</Text>
-            <Text style={styles.sensorModelo}>
-              {[sensor.fabricante, sensor.modelo].filter(Boolean).join(' · ') ||
-                'Modelo desconocido'}
-            </Text>
-            {sensor.fecha_instalacion && (
-              <Text style={styles.sensorFecha}>
-                Instalado:{' '}
-                {new Date(sensor.fecha_instalacion).toLocaleDateString('es-CL')}
-              </Text>
-            )}
-          </View>
+  const innerContent = (
+    <>
+      <View style={styles.sensorCardHeader}>
+        <View style={[styles.sensorIcon, isSelected && { backgroundColor: COLORS.teal }]}>
+          <Feather name="cpu" size={20} color={isSelected ? COLORS.bg : COLORS.teal} />
         </View>
         <SensorBadge activo={sensor.activo} />
-      </TouchableOpacity>
+      </View>
+      <View style={{ marginTop: 12 }}>
+        <Text style={styles.sensorCodigo} numberOfLines={1}>{sensor.codigo || 'S/C'}</Text>
+        <Text style={styles.sensorModelo} numberOfLines={1}>
+          {[sensor.fabricante, sensor.modelo].filter(Boolean).join(' · ') || 'Modelo desc.'}
+        </Text>
+      </View>
+    </>
+  );
+
+  return (
+    <FadeSlideCard delay={index * 80} style={{ marginRight: 12 }}>
+      <PressableScale onPress={onPress}>
+        {isSelected ? (
+          <LinearGradient
+            colors={COLORS.gradientSelected}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.sensorCard, styles.sensorCardSelected]}
+          >
+            {innerContent}
+          </LinearGradient>
+        ) : (
+          <View style={styles.sensorCard}>{innerContent}</View>
+        )}
+      </PressableScale>
     </FadeSlideCard>
   );
 }
 
 // ─── Panel de detalle de sensor ──────────────────────────────────────────────
-function SensorDetailPanel({ sensorId }: { sensorId: string }) {
+function SensorDetailPanel({ sensorId, codigo }: { sensorId: string, codigo: string }) {
   const { lecturas, loading, error, refresh } = useLecturas(sensorId);
-  const {
-    alertas,
-    loading: loadingAlertas,
-    refresh: refreshAlertas,
-  } = useAlertas(sensorId);
+  const { alertas, loading: loadingAlertas, refresh: refreshAlertas } = useAlertas(sensorId);
+  
+  const [rango, setRango] = useState<RangoTiempo>('semana');
 
   useEffect(() => {
     refresh();
@@ -233,48 +178,59 @@ function SensorDetailPanel({ sensorId }: { sensorId: string }) {
   const lastLectura = lecturas[lecturas.length - 1];
   const alertasActivas = alertas.filter((a) => a.estado === 'activa');
 
+  // Filtrar lecturas según el rango
+  const now = new Date();
+  const lecturasFiltradas = lecturas.filter((l) => {
+    const d = new Date(l.fecha_lectura);
+    const diffDays = Math.abs(now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
+    if (rango === 'hoy') return diffDays <= 1;
+    if (rango === 'semana') return diffDays <= 7;
+    if (rango === 'mes') return diffDays <= 30;
+    return true;
+  });
+
   return (
     <ScrollView
       style={styles.detailPanel}
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 24 }}
+      contentContainerStyle={{ paddingBottom: 32 }}
     >
-      {/* KPIs */}
       <FadeSlideCard delay={50}>
+        <View style={styles.panelHeader}>
+          <Text style={styles.panelLabel}>MONITOREO EN VIVO</Text>
+          <Text style={styles.panelSensorCode}>{codigo}</Text>
+        </View>
+      </FadeSlideCard>
+
+      {/* KPIs */}
+      <FadeSlideCard delay={100}>
         <View style={styles.kpiRow}>
           <View style={[styles.kpiCard, { borderColor: COLORS.tealBorder }]}>
-            <MaterialIcons name="water-drop" size={22} color={COLORS.teal} />
+            <Feather name="droplet" size={24} color={COLORS.teal} />
             <Text style={styles.kpiValue}>
               {lastLectura ? `${lastLectura.valor.toFixed(1)}%` : '—'}
             </Text>
-            <Text style={styles.kpiLabel}>Último valor</Text>
+            <Text style={styles.kpiLabel}>Humedad</Text>
           </View>
-          <View style={[styles.kpiCard, { borderColor: 'rgba(245,158,11,0.3)' }]}>
-            <MaterialIcons name="battery-std" size={22} color={COLORS.amber} />
+          <View style={[styles.kpiCard, { borderColor: 'rgba(251,191,36,0.3)' }]}>
+            <Feather name="battery-charging" size={24} color={COLORS.amber} />
             <Text style={[styles.kpiValue, { color: COLORS.amber }]}>
-              {lastLectura?.bateria_porcentaje != null
-                ? `${lastLectura.bateria_porcentaje}%`
-                : '—'}
+              {lastLectura?.bateria_porcentaje != null ? `${lastLectura.bateria_porcentaje}%` : '—'}
             </Text>
             <Text style={styles.kpiLabel}>Batería</Text>
           </View>
           <View
             style={[
               styles.kpiCard,
-              { borderColor: alertasActivas.length > 0 ? 'rgba(244,63,94,0.3)' : COLORS.border },
+              { borderColor: alertasActivas.length > 0 ? 'rgba(251,113,133,0.3)' : COLORS.border },
             ]}
           >
-            <MaterialIcons
-              name="notifications-active"
-              size={22}
+            <Feather
+              name="bell"
+              size={24}
               color={alertasActivas.length > 0 ? COLORS.rose : COLORS.muted}
             />
-            <Text
-              style={[
-                styles.kpiValue,
-                { color: alertasActivas.length > 0 ? COLORS.rose : COLORS.muted },
-              ]}
-            >
+            <Text style={[styles.kpiValue, { color: alertasActivas.length > 0 ? COLORS.rose : COLORS.text }]}>
               {alertasActivas.length}
             </Text>
             <Text style={styles.kpiLabel}>Alertas</Text>
@@ -283,103 +239,66 @@ function SensorDetailPanel({ sensorId }: { sensorId: string }) {
       </FadeSlideCard>
 
       {/* Gráfico humedad */}
-      <FadeSlideCard delay={120}>
+      <FadeSlideCard delay={180}>
         <View style={styles.chartCard}>
-          <View style={styles.chartHeader}>
-            <MaterialIcons name="show-chart" size={18} color={COLORS.teal} />
-            <Text style={styles.chartTitle}>Historial de Humedad</Text>
-            <Text style={styles.chartSubtitle}>
-              {lecturas.length} lectura{lecturas.length !== 1 ? 's' : ''}
-            </Text>
+          <View style={styles.chartHeaderRow}>
+            <View style={styles.chartHeader}>
+              <Feather name="bar-chart-2" size={18} color={COLORS.teal} />
+              <Text style={styles.chartTitle}>Historial de Humedad</Text>
+            </View>
+            
+            {/* Filtros */}
+            <View style={styles.filterRow}>
+              {(['hoy', 'semana', 'mes'] as RangoTiempo[]).map((r) => (
+                <TouchableOpacity
+                  key={r}
+                  style={[styles.filterBtn, rango === r && styles.filterBtnActive]}
+                  onPress={() => setRango(r)}
+                >
+                  <Text style={[styles.filterText, rango === r && styles.filterTextActive]}>
+                    {r.charAt(0).toUpperCase() + r.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
-          {loading ? (
+
+          {loading && lecturas.length === 0 ? (
             <ActivityIndicator color={COLORS.teal} style={{ paddingVertical: 32 }} />
           ) : (
-            <HumedadChart lecturas={lecturas} />
+            <HumedadChart lecturas={lecturasFiltradas} />
           )}
         </View>
       </FadeSlideCard>
 
       {/* Lecturas recientes */}
-      <FadeSlideCard delay={200}>
+      <FadeSlideCard delay={250}>
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>LECTURAS RECIENTES</Text>
+          <Text style={styles.sectionTitle}>ÚLTIMAS LECTURAS</Text>
           {loading && lecturas.length === 0 ? (
             <ActivityIndicator color={COLORS.teal} />
           ) : lecturas.length === 0 ? (
-            <Text style={styles.emptyText}>Sin lecturas</Text>
+            <Text style={styles.emptyText}>No hay datos aún.</Text>
           ) : (
-            lecturas
-              .slice()
-              .reverse()
-              .slice(0, 8)
-              .map((l, i) => (
+            lecturas.slice().reverse().slice(0, 5).map((l) => (
                 <View key={l.id} style={styles.lecturaRow}>
                   <View style={styles.lecturaLeft}>
-                    <Text style={styles.lecturaValor}>{l.valor.toFixed(2)}</Text>
+                    <Text style={styles.lecturaValor}>{l.valor.toFixed(1)}</Text>
                     <Text style={styles.lecturaUnidad}>%</Text>
                   </View>
                   <View>
                     <Text style={styles.lecturaFecha}>
                       {new Date(l.fecha_lectura).toLocaleString('es-CL', {
-                        dateStyle: 'short',
-                        timeStyle: 'short',
+                        dateStyle: 'short', timeStyle: 'short',
                       })}
                     </Text>
-                    {l.observacion ? (
-                      <Text style={styles.lecturaObs}>{l.observacion}</Text>
-                    ) : null}
+                    {l.observacion ? <Text style={styles.lecturaObs}>{l.observacion}</Text> : null}
                   </View>
                 </View>
               ))
           )}
         </View>
       </FadeSlideCard>
-
-      {/* Alertas */}
-      {alertas.length > 0 && (
-        <FadeSlideCard delay={280}>
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>ALERTAS</Text>
-            {alertas.slice(0, 5).map((a) => (
-              <View key={a.id} style={styles.alertaRow}>
-                <MaterialIcons
-                  name={a.estado === 'activa' ? 'warning-amber' : 'check-circle'}
-                  size={18}
-                  color={a.estado === 'activa' ? COLORS.rose : COLORS.teal}
-                />
-                <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={styles.alertaTipo}>{a.tipo}</Text>
-                  <Text style={styles.alertaDetalle}>
-                    Detectado: {a.valor_detectado} · Umbral: {a.umbral}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.alertaEstadoBadge,
-                    {
-                      backgroundColor:
-                        a.estado === 'activa'
-                          ? 'rgba(244,63,94,0.12)'
-                          : COLORS.tealDim,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      fontWeight: '700',
-                      color: a.estado === 'activa' ? COLORS.rose : COLORS.teal,
-                    }}
-                  >
-                    {a.estado.toUpperCase()}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </FadeSlideCard>
-      )}
     </ScrollView>
   );
 }
@@ -391,113 +310,80 @@ interface SensorListScreenProps {
   onBack: () => void;
 }
 
-export function SensorListScreen({
-  arbolId,
-  arbolCodigo,
-  onBack,
-}: SensorListScreenProps) {
+export function SensorListScreen({ arbolId, arbolCodigo, onBack }: SensorListScreenProps) {
   const { sensores, loading, error, refresh } = useSensores(arbolId);
   const [selectedSensor, setSelectedSensor] = useState<Sensor | null>(null);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  // Auto-select first sensor when list loads
+  useEffect(() => { refresh(); }, [refresh]);
   useEffect(() => {
     if (sensores.length > 0 && !selectedSensor) {
       setSelectedSensor(sensores[0]);
     }
   }, [sensores]);
 
-  if (loading && sensores.length === 0) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.teal} />
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
 
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
-          <MaterialIcons name="arrow-back" size={20} color={COLORS.muted} />
+          <Feather name="chevron-left" size={24} color={COLORS.muted} />
         </TouchableOpacity>
-        <View>
-          <Text style={styles.headerTitle}>Sensores IoT</Text>
-          {arbolCodigo && (
-            <Text style={styles.headerSub}>Árbol: {arbolCodigo}</Text>
-          )}
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>Dispositivos</Text>
+          {arbolCodigo && <Text style={styles.headerSub}>Árbol: {arbolCodigo}</Text>}
         </View>
         <View style={styles.headerCount}>
-          <Text style={styles.headerCountText}>{sensores.length}</Text>
+          <Text style={styles.headerCountText}>{sensores.length} online</Text>
         </View>
       </View>
 
       {error && (
         <View style={styles.errorBanner}>
-          <MaterialIcons name="error-outline" size={16} color={COLORS.rose} />
+          <Feather name="alert-circle" size={16} color={COLORS.rose} />
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
 
-      <View style={styles.content}>
-        {/* Lista de sensores */}
-        <View style={styles.leftPanel}>
-          <Text style={styles.panelLabel}>DISPOSITIVOS</Text>
-          <FlatList
-            data={sensores}
-            keyExtractor={(s) => s.id}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={loading}
-                onRefresh={refresh}
-                tintColor={COLORS.teal}
-              />
-            }
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <MaterialIcons name="sensors-off" size={40} color={COLORS.muted} />
-                <Text style={styles.emptyTitle}>Sin sensores</Text>
-                <Text style={styles.emptyDesc}>
-                  No hay sensores registrados para este árbol.
-                </Text>
-              </View>
-            }
-            renderItem={({ item, index }) => (
-              <SensorCard
-                sensor={item}
-                index={index}
-                isSelected={selectedSensor?.id === item.id}
-                onPress={() => setSelectedSensor(item)}
-              />
-            )}
-          />
+      {loading && sensores.length === 0 ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={COLORS.teal} />
         </View>
+      ) : (
+        <View style={styles.content}>
+          <View style={styles.carouselContainer}>
+            <FlatList
+              horizontal
+              data={sensores}
+              keyExtractor={(s) => s.id}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.carouselContent}
+              refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={COLORS.teal} />}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Feather name="radio" size={40} color={COLORS.muted} />
+                  <Text style={styles.emptyTitle}>Sin sensores</Text>
+                  <Text style={styles.emptyDesc}>No hay dispositivos vinculados a este árbol.</Text>
+                </View>
+              }
+              renderItem={({ item, index }) => (
+                <SensorCard
+                  sensor={item}
+                  index={index}
+                  isSelected={selectedSensor?.id === item.id}
+                  onPress={() => setSelectedSensor(item)}
+                />
+              )}
+            />
+          </View>
 
-        {/* Panel de detalle */}
-        {selectedSensor ? (
-          <View style={styles.rightPanel}>
-            <Text style={styles.panelLabel}>MONITOREO</Text>
-            <Text style={styles.panelSensorCode}>
-              {selectedSensor.codigo || 'Sensor'}
-            </Text>
-            <SensorDetailPanel sensorId={selectedSensor.id} />
+          <View style={styles.detailContainer}>
+            {selectedSensor ? (
+              <SensorDetailPanel sensorId={selectedSensor.id} codigo={selectedSensor.codigo || 'S/C'} />
+            ) : null}
           </View>
-        ) : (
-          <View style={[styles.rightPanel, styles.center]}>
-            <MaterialIcons name="touch-app" size={36} color={COLORS.muted} />
-            <Text style={{ color: COLORS.muted, marginTop: 8, textAlign: 'center' }}>
-              Selecciona un sensor para ver su monitoreo
-            </Text>
-          </View>
-        )}
-      </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -507,237 +393,101 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.bg },
 
-  // Header
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 52,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    gap: 12,
+    flexDirection: 'row', alignItems: 'center', paddingTop: 56, paddingHorizontal: 20,
+    paddingBottom: 16, backgroundColor: COLORS.surface, borderBottomWidth: 1,
+    borderBottomColor: COLORS.border, gap: 16,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.cardBg,
+    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.border,
   },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: COLORS.text, letterSpacing: -0.3 },
-  headerSub: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: COLORS.text, letterSpacing: -0.5 },
+  headerSub: { fontSize: 13, color: COLORS.teal, marginTop: 2, fontWeight: '600' },
   headerCount: {
-    marginLeft: 'auto',
-    backgroundColor: COLORS.tealDim,
-    borderWidth: 1,
-    borderColor: COLORS.tealBorder,
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: COLORS.tealDim, borderWidth: 1, borderColor: COLORS.tealBorder,
+    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6,
   },
-  headerCountText: { fontSize: 13, fontWeight: '700', color: COLORS.teal },
+  headerCountText: { fontSize: 12, fontWeight: '700', color: COLORS.teal },
 
   errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(244,63,94,0.1)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 8,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(244,63,94,0.1)',
+    paddingHorizontal: 20, paddingVertical: 12, gap: 10,
   },
-  errorText: { color: COLORS.rose, fontSize: 13 },
+  errorText: { color: COLORS.rose, fontSize: 13, fontWeight: '600' },
 
-  // Layout
-  content: { flex: 1, flexDirection: 'row' },
-  leftPanel: {
-    width: SCREEN_WIDTH * 0.42,
-    borderRightWidth: 1,
-    borderRightColor: COLORS.border,
-    paddingHorizontal: 12,
-    paddingTop: 16,
+  content: { flex: 1, flexDirection: 'column' },
+  carouselContainer: {
+    paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.surface,
   },
-  rightPanel: {
-    flex: 1,
-    paddingHorizontal: 14,
-    paddingTop: 16,
-  },
-  panelLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.muted,
-    letterSpacing: 1.4,
-    marginBottom: 12,
-  },
-  panelSensorCode: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: COLORS.text,
-    marginBottom: 12,
-    letterSpacing: -0.2,
-  },
+  carouselContent: { paddingHorizontal: 20 },
 
-  // Sensor card
+  detailContainer: { flex: 1, paddingHorizontal: 16, paddingTop: 20 },
+
+  panelHeader: { marginBottom: 16, paddingHorizontal: 4 },
+  panelLabel: { fontSize: 11, fontWeight: '800', color: COLORS.teal, letterSpacing: 1.5, marginBottom: 4 },
+  panelSensorCode: { fontSize: 24, fontWeight: '800', color: COLORS.text, letterSpacing: -0.5 },
+
   sensorCard: {
-    backgroundColor: COLORS.cardBg,
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 16, borderWidth: 1,
+    borderColor: COLORS.border, width: 160, height: 110, shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4,
   },
-  sensorCardSelected: {
-    borderColor: COLORS.teal,
-    backgroundColor: 'rgba(14,32,38,0.9)',
-  },
-  sensorCardLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  sensorIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: COLORS.tealDim,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sensorCodigo: { fontSize: 13, fontWeight: '700', color: COLORS.text },
-  sensorModelo: { fontSize: 11, color: COLORS.muted, marginTop: 2 },
-  sensorFecha: { fontSize: 10, color: COLORS.muted, marginTop: 2 },
+  sensorCardSelected: { borderColor: COLORS.teal, borderWidth: 1.5, shadowColor: COLORS.teal, shadowOpacity: 0.3, shadowRadius: 12 },
+  sensorCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  sensorIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.tealDim, justifyContent: 'center', alignItems: 'center' },
+  sensorCodigo: { fontSize: 15, fontWeight: '800', color: COLORS.text, letterSpacing: -0.3 },
+  sensorModelo: { fontSize: 12, color: COLORS.muted, marginTop: 4 },
 
-  // Badge
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 5,
-  },
-  badgeActive: {
-    backgroundColor: COLORS.tealDim,
-    borderColor: COLORS.tealBorder,
-  },
-  badgeInactive: {
-    backgroundColor: 'rgba(244,63,94,0.1)',
-    borderColor: 'rgba(244,63,94,0.25)',
-  },
+  badge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, borderWidth: 1, gap: 6 },
+  badgeActive: { backgroundColor: COLORS.tealDim, borderColor: COLORS.tealBorder },
+  badgeInactive: { backgroundColor: 'rgba(244,63,94,0.1)', borderColor: 'rgba(244,63,94,0.25)' },
   badgeDot: { width: 6, height: 6, borderRadius: 3 },
-  badgeText: { fontSize: 10, fontWeight: '700' },
+  badgeText: { fontSize: 10, fontWeight: '800' },
 
-  // KPIs
-  kpiRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 14,
-  },
+  kpiRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   kpiCard: {
-    flex: 1,
-    backgroundColor: COLORS.cardBg,
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 10,
-    alignItems: 'center',
-    gap: 4,
+    flex: 1, backgroundColor: COLORS.cardBg, borderRadius: 16, borderWidth: 1, padding: 16,
+    alignItems: 'center', gap: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, shadowRadius: 4, elevation: 2,
   },
-  kpiValue: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: COLORS.text,
-    letterSpacing: -0.5,
-  },
-  kpiLabel: { fontSize: 10, color: COLORS.muted, textAlign: 'center' },
+  kpiValue: { fontSize: 20, fontWeight: '800', color: COLORS.text, letterSpacing: -0.5 },
+  kpiLabel: { fontSize: 11, color: COLORS.muted, fontWeight: '600' },
 
-  // Chart
-  chartCard: {
-    backgroundColor: COLORS.cardBg,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 14,
-    marginBottom: 14,
-  },
-  chartHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 6,
-  },
-  chartTitle: { fontSize: 13, fontWeight: '700', color: COLORS.text, flex: 1 },
-  chartSubtitle: { fontSize: 11, color: COLORS.muted },
-  chartEmpty: {
-    height: 120,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  chartEmptyText: { fontSize: 12, color: COLORS.muted },
+  chartCard: { backgroundColor: COLORS.cardBg, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, padding: 16, marginBottom: 16 },
+  chartHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  chartHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  chartTitle: { fontSize: 15, fontWeight: '700', color: COLORS.text },
+  
+  filterRow: { flexDirection: 'row', gap: 4, backgroundColor: COLORS.surface, borderRadius: 8, padding: 4, borderWidth: 1, borderColor: COLORS.border },
+  filterBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  filterBtnActive: { backgroundColor: COLORS.tealDim },
+  filterText: { fontSize: 10, color: COLORS.muted, fontWeight: '600' },
+  filterTextActive: { color: COLORS.teal, fontWeight: '800' },
 
-  // Sections
-  sectionCard: {
-    backgroundColor: COLORS.cardBg,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 14,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.muted,
-    letterSpacing: 1.4,
-    marginBottom: 10,
-  },
-  emptyText: { fontSize: 12, color: COLORS.muted, textAlign: 'center', paddingVertical: 12 },
+  chartLegendContainer: { marginTop: 12, paddingHorizontal: 8, gap: 6, width: '100%', alignItems: 'flex-start' },
+  chartLegendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  chartLegendText: { fontSize: 11, color: COLORS.muted, fontWeight: '500' },
 
-  // Lecturas
-  lecturaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  lecturaLeft: { flexDirection: 'row', alignItems: 'baseline', gap: 3 },
+  chartEmpty: { height: 160, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  chartEmptyText: { fontSize: 13, color: COLORS.muted },
+
+  sectionCard: { backgroundColor: COLORS.cardBg, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, padding: 16, marginBottom: 16 },
+  sectionTitle: { fontSize: 11, fontWeight: '800', color: COLORS.muted, letterSpacing: 1.5, marginBottom: 16 },
+  emptyText: { fontSize: 13, color: COLORS.muted, textAlign: 'center', paddingVertical: 16 },
+
+  lecturaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  lecturaLeft: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
   lecturaValor: { fontSize: 18, fontWeight: '800', color: COLORS.teal },
-  lecturaUnidad: { fontSize: 11, color: COLORS.muted },
-  lecturaFecha: { fontSize: 11, color: COLORS.muted, textAlign: 'right' },
-  lecturaObs: { fontSize: 10, color: COLORS.muted, marginTop: 2, textAlign: 'right' },
+  lecturaUnidad: { fontSize: 12, color: COLORS.muted, fontWeight: '700' },
+  lecturaFecha: { fontSize: 12, color: COLORS.text, textAlign: 'right', fontWeight: '500' },
+  lecturaObs: { fontSize: 11, color: COLORS.muted, marginTop: 4, textAlign: 'right' },
 
-  // Alertas
-  alertaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    gap: 8,
-  },
-  alertaTipo: { fontSize: 12, fontWeight: '700', color: COLORS.text, textTransform: 'capitalize' },
-  alertaDetalle: { fontSize: 10, color: COLORS.muted, marginTop: 2 },
-  alertaEstadoBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-
-  // Empty states
-  emptyContainer: {
-    paddingVertical: 32,
-    alignItems: 'center',
-    gap: 8,
-  },
-  emptyTitle: { fontSize: 15, fontWeight: '700', color: COLORS.muted },
-  emptyDesc: {
-    fontSize: 12,
-    color: COLORS.muted,
-    textAlign: 'center',
-    paddingHorizontal: 16,
-  },
+  emptyContainer: { paddingVertical: 40, alignItems: 'center', gap: 12 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: COLORS.muted },
+  emptyDesc: { fontSize: 13, color: COLORS.muted, textAlign: 'center' },
 
   detailPanel: { flex: 1 },
 });

@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, FlatList, ActivityIndicator, Alert, TouchableOpacity, RefreshControl, Platform, StatusBar } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { View, Text, FlatList, ActivityIndicator, Alert, TouchableOpacity, RefreshControl, StatusBar } from 'react-native';
+import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { useParques } from '../../hooks/useParques';
 import { styles } from './ParqueListScreen.styles';
+import { FadeSlideCard, PressableScale } from '../ui/AnimatedCards';
 
 interface ParqueListScreenProps {
   onOpenMenu: () => void;
@@ -77,7 +78,7 @@ export function ParqueListScreen({ onOpenMenu, onAdd, onSelect }: ParqueListScre
             <Text style={styles.emptySubtext}>Toca el botón flotante para agregar tu primer parque a la lista.</Text>
           </View>
         }
-        renderItem={({ item }) => {
+        renderItem={({ item, index }) => {
           let lat = null;
           let lng = null;
           if (item.direccion) {
@@ -93,36 +94,49 @@ export function ParqueListScreen({ onOpenMenu, onAdd, onSelect }: ParqueListScre
           }
 
           return (
-            <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={() => onSelect(item.id)}>
-              <View style={styles.cardContent}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.cardLabel}>Parque registrado</Text>
-                  <View style={styles.badge}>
-                    <MaterialIcons name="eco" size={14} color="#061114" />
-                    <Text style={styles.badgeText}>Activo</Text>
+            <FadeSlideCard delay={index * 50} style={{ marginBottom: 16 }}>
+              <PressableScale onPress={() => onSelect(item.id)}>
+                <View style={[styles.card, { position: 'relative', overflow: 'hidden' }]}>
+                  {/* Hero Icon de fondo */}
+                  <Feather 
+                    name="map" 
+                    size={100} 
+                    color="rgba(20, 184, 166, 0.04)" 
+                    style={{ position: 'absolute', right: -20, bottom: -10, transform: [{ rotate: '-10deg' }] }} 
+                  />
+
+                  <View style={styles.cardContent}>
+                    <View style={styles.cardHeader}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Feather name="map" size={14} color="#14B8A6" />
+                        <Text style={styles.cardLabel}>Ecoparque</Text>
+                      </View>
+                      <View style={styles.badge}>
+                        <MaterialIcons name="eco" size={14} color="#061114" />
+                        <Text style={styles.badgeText}>Activo</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.cardTitle}>{item.nombre}</Text>
+                    <Text style={styles.cardSubtitle}>
+                      <Feather name="file-text" size={12} color="#8FA3A9" /> {item.descripcion || 'Sin descripción'}
+                    </Text>
+                    <Text style={styles.cardSubtitle}>
+                      <Feather name="map-pin" size={12} color="#8FA3A9" /> {item.direccion || 'Sin dirección'}
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.cardDivider} />
+                
+                  <View style={styles.cardFooter}>
+                    <Text style={styles.statsText}>~10 hectáreas</Text>
+                    <TouchableOpacity style={styles.deleteButton} onPress={() => handleRemove(item.id)} activeOpacity={0.6}>
+                      <Text style={styles.deleteButtonText}>Eliminar</Text>
+                      <Feather name="trash-2" size={16} color="#F43F5E" />
+                    </TouchableOpacity>
                   </View>
                 </View>
-                <Text style={styles.cardTitle}>{item.nombre}</Text>
-                <Text style={styles.cardSubtitle}>
-                  <MaterialIcons name="description" size={14} color="#8FA3A9" /> {item.descripcion || 'Sin descripción'}
-                </Text>
-                <Text style={styles.cardSubtitle}>
-                  <MaterialIcons name="place" size={14} color="#8FA3A9" /> {item.direccion || 'Sin dirección'}
-                </Text>
-              </View>
-              
-              {/* Mapa temporalmente deshabilitado */}
-              
-              <View style={styles.cardDivider} />
-            
-            <View style={styles.cardFooter}>
-               <Text style={styles.statsText}>~10 hectáreas</Text>
-               <TouchableOpacity style={styles.deleteButton} onPress={() => handleRemove(item.id)} activeOpacity={0.6}>
-                 <Text style={styles.deleteButtonText}>Eliminar</Text>
-                 <MaterialIcons name="delete-outline" size={18} color="#F43F5E" />
-               </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
+              </PressableScale>
+            </FadeSlideCard>
           );
         }}
       />

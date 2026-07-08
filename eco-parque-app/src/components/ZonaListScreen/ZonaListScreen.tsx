@@ -9,10 +9,11 @@ import {
   StatusBar,
   Alert,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { useZonas } from '../../hooks/useZonas';
 import { Zona } from '../../dto/zona.dto';
 import { styles } from './ZonaListScreen.styles';
+import { FadeSlideCard, PressableScale } from '../ui/AnimatedCards';
 
 interface ZonaListScreenProps {
   parqueId: string;
@@ -89,38 +90,53 @@ export function ZonaListScreen({ parqueId, onBack, onAdd, onSelect, onEdit }: Zo
             <Text style={styles.emptySubtext}>Crea una zona para subdividir el parque.</Text>
           </View>
         }
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={() => onSelect(item.id)}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardLabel}>Zona</Text>
-              <View style={styles.badge}>
-                <MaterialIcons name="fullscreen" size={14} color="#FFFFFF" />
-                <Text style={styles.badgeText}>{item.area_m2 ? `${item.area_m2} m²` : 'N/A'}</Text>
+        renderItem={({ item, index }) => (
+          <FadeSlideCard delay={index * 50} style={{ marginBottom: 16 }}>
+            <PressableScale onPress={() => onSelect(item.id)}>
+              <View style={[styles.card, { position: 'relative', overflow: 'hidden' }]}>
+                {/* Hero Icon de fondo */}
+                <Feather 
+                  name="grid" 
+                  size={100} 
+                  color="rgba(59, 130, 246, 0.04)" 
+                  style={{ position: 'absolute', right: -15, bottom: -15, transform: [{ rotate: '10deg' }] }} 
+                />
+
+                <View style={styles.cardHeader}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Feather name="grid" size={14} color="#3B82F6" />
+                    <Text style={styles.cardLabel}>Zona</Text>
+                  </View>
+                  <View style={styles.badge}>
+                    <MaterialIcons name="fullscreen" size={14} color="#FFFFFF" />
+                    <Text style={styles.badgeText}>{item.area_m2 ? `${item.area_m2} m²` : 'N/A'}</Text>
+                  </View>
+                </View>
+                <Text style={styles.cardTitle}>{item.nombre}</Text>
+                <Text style={styles.cardSubtitle}>
+                  <Feather name="file-text" size={12} color="#8FA3A9" /> {item.descripcion || 'Sin descripción'}
+                </Text>
+                <View style={[styles.cardActions, { marginTop: 16 }]}>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => onEdit(item)}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="edit" size={16} color="#3B82F6" />
+                    <Text style={styles.actionButtonText}>Editar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.actionButtonDanger]}
+                    onPress={() => handleDelete(item)}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="trash-2" size={16} color="#F43F5E" />
+                    <Text style={[styles.actionButtonText, styles.actionButtonTextDanger]}>Eliminar</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-            <Text style={styles.cardTitle}>{item.nombre}</Text>
-            <Text style={styles.cardSubtitle}>
-              <MaterialIcons name="description" size={14} color="#8FA3A9" /> {item.descripcion || 'Sin descripción'}
-            </Text>
-            <View style={styles.cardActions}>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => onEdit(item)}
-                activeOpacity={0.7}
-              >
-                <MaterialIcons name="edit" size={18} color="#3B82F6" />
-                <Text style={styles.actionButtonText}>Editar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.actionButtonDanger]}
-                onPress={() => handleDelete(item)}
-                activeOpacity={0.7}
-              >
-                <MaterialIcons name="delete-outline" size={18} color="#F43F5E" />
-                <Text style={[styles.actionButtonText, styles.actionButtonTextDanger]}>Eliminar</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
+            </PressableScale>
+          </FadeSlideCard>
         )}
       />
 
