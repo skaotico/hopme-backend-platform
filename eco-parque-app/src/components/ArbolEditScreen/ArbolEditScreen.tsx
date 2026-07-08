@@ -12,27 +12,28 @@ import {
   FlatList,
   TouchableWithoutFeedback,
 } from 'react-native';
-import * as Location from 'expo-location';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useArboles } from '../hooks/useArboles';
-import { CatalogoService } from '../services/catalogo.service';
-import { EspecieArbol, EstadoArbol } from '../dto/catalogo.dto';
-import { styles } from './ArbolAddScreen.styles';
+import { useArboles } from '../../hooks/useArboles';
+import { CatalogoService } from '../../services/catalogo.service';
+import { EspecieArbol, EstadoArbol } from '../../dto/catalogo.dto';
+import { Arbol } from '../../dto/arbol.dto';
+import { styles } from '../ArbolAddScreen/ArbolAddScreen.styles';
 
-interface ArbolAddScreenProps {
+interface ArbolEditScreenProps {
   zonaId: string;
+  arbol: Arbol;
   onBack: () => void;
   onSuccess: () => void;
 }
 
-export function ArbolAddScreen({ zonaId, onBack, onSuccess }: ArbolAddScreenProps) {
-  const { addArbol } = useArboles(zonaId);
-  const [codigo, setCodigo] = useState('');
-  const [alturaM, setAlturaM] = useState('');
-  const [diametroCm, setDiametroCm] = useState('');
-  const [anchoCopaM, setAnchoCopaM] = useState('');
-  const [edadEstimadaAnios, setEdadEstimadaAnios] = useState('');
-  const [observaciones, setObservaciones] = useState('');
+export function ArbolEditScreen({ zonaId, arbol, onBack, onSuccess }: ArbolEditScreenProps) {
+  const { updateArbol } = useArboles(zonaId);
+  const [codigo, setCodigo] = useState(arbol.codigo || '');
+  const [alturaM, setAlturaM] = useState(arbol.altura_m ? String(arbol.altura_m) : '');
+  const [diametroCm, setDiametroCm] = useState(arbol.diametro_tronco_cm ? String(arbol.diametro_tronco_cm) : '');
+  const [anchoCopaM, setAnchoCopaM] = useState(arbol.ancho_copa_m ? String(arbol.ancho_copa_m) : '');
+  const [edadEstimadaAnios, setEdadEstimadaAnios] = useState(arbol.edad_estimada_anios ? String(arbol.edad_estimada_anios) : '');
+  const [observaciones, setObservaciones] = useState(arbol.observaciones || '');
   const [isSaving, setIsSaving] = useState(false);
 
   // Catalogs state
@@ -46,33 +47,8 @@ export function ArbolAddScreen({ zonaId, onBack, onSuccess }: ArbolAddScreenProp
   const [isEspeciePickerOpen, setIsEspeciePickerOpen] = useState(false);
   const [isEstadoPickerOpen, setIsEstadoPickerOpen] = useState(false);
 
-  // GPS state
-  const [formLocation, setFormLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
-
-  // Load catalogs and GPS position
+  // Load catalogs and set initial selected values
   useEffect(() => {
-    // 1. Fetch Location
-    (async () => {
-      setIsFetchingLocation(true);
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setIsFetchingLocation(false);
-        return;
-      }
-      try {
-        let location = await Location.getCurrentPositionAsync({});
-        setFormLocation({
-          lat: location.coords.latitude,
-          lng: location.coords.longitude,
-        });
-      } catch (error) {
-        console.warn(error);
-      }
-      setIsFetchingLocation(false);
-    })();
-
-    // 2. Fetch species and states from catalog service
     (async () => {
       setIsLoadingCatalogs(true);
       try {
@@ -80,18 +56,21 @@ export function ArbolAddScreen({ zonaId, onBack, onSuccess }: ArbolAddScreenProp
           CatalogoService.list('especies'),
           CatalogoService.list('estados-arbol'),
         ]);
-        // Only keep active species if active flag exists
+
         const activeEspecies = (loadedEspecies as EspecieArbol[]).filter(
-          (e) => e.activo !== false
+          (e) => e.activo !== false || e.id === arbol.especie_id
         );
         setEspecies(activeEspecies);
         setEstados(loadedEstados as EstadoArbol[]);
 
-        // Auto select first options as default if available
-        if (activeEspecies.length > 0) setSelectedEspecie(activeEspecies[0]);
-        if (loadedEstados.length > 0) setSelectedEstado(loadedEstados[0] as EstadoArbol);
+        // Match initial values
+        const currentEspecie = activeEspecies.find((e) => e.id === arbol.especie_id);
+        const currentEstado = (loadedEstados as EstadoArbol[]).find((e) => e.id === arbol.estado_id);
+
+        if (currentEspecie) setSelectedEspecie(currentEspecie);
+        if (currentEstado) setSelectedEstado(currentEstado);
       } catch (err) {
-        console.error('Error cargando catálogos para registro de árboles:', err);
+        console.error('Error cargando catálogos para edición de árboles:', err);
         Alert.alert(
           'Error de Catálogo',
           'No se pudieron cargar los catálogos de especies y estados. Por favor inténtalo más tarde.'
@@ -100,14 +79,9 @@ export function ArbolAddScreen({ zonaId, onBack, onSuccess }: ArbolAddScreenProp
         setIsLoadingCatalogs(false);
       }
     })();
-  }, []);
+  }, [arbol]);
 
-  const handleAdd = async () => {
-    if (!formLocation) {
-      Alert.alert('Oops', 'Aún no se ha obtenido la ubicación GPS del árbol.');
-      return;
-    }
-
+  const handleSave = async () => {
     if (!selectedEspecie) {
       Alert.alert('Oops', 'Por favor selecciona la especie del árbol.');
       return;
@@ -125,12 +99,13 @@ export function ArbolAddScreen({ zonaId, onBack, onSuccess }: ArbolAddScreenProp
     const parsedAnchoCopa = anchoCopaM ? parseFloat(anchoCopaM) : undefined;
     const parsedEdad = edadEstimadaAnios ? parseInt(edadEstimadaAnios, 10) : undefined;
 
-    const result = await addArbol({
+    const result = await updateArbol(arbol.id, {
+      zona_id: zonaId,
       codigo: codigo.trim() || undefined,
       especie_id: selectedEspecie.id,
       estado_id: selectedEstado.id,
-      latitud: formLocation.lat,
-      longitud: formLocation.lng,
+      latitud: arbol.latitud,
+      longitud: arbol.longitud,
       altura_m: parsedAltura != null && !isNaN(parsedAltura) ? parsedAltura : undefined,
       diametro_tronco_cm: parsedDiametro != null && !isNaN(parsedDiametro) ? parsedDiametro : undefined,
       ancho_copa_m: parsedAnchoCopa != null && !isNaN(parsedAnchoCopa) ? parsedAnchoCopa : undefined,
@@ -143,7 +118,7 @@ export function ArbolAddScreen({ zonaId, onBack, onSuccess }: ArbolAddScreenProp
     if (result.success) {
       onSuccess();
     } else {
-      Alert.alert('Error al crear', result.error || 'Ocurrió un error al registrar el árbol');
+      Alert.alert('Error al actualizar', result.error || 'Ocurrió un error al guardar los cambios del árbol');
     }
   };
 
@@ -165,26 +140,17 @@ export function ArbolAddScreen({ zonaId, onBack, onSuccess }: ArbolAddScreenProp
         <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.7}>
           <MaterialIcons name="arrow-back" size={20} color="#8FA3A9" />
         </TouchableOpacity>
-        <Text style={styles.title}>Registrar Árbol</Text>
+        <Text style={styles.title}>Editar Árbol</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.formContent} showsVerticalScrollIndicator={false}>
-        {isFetchingLocation ? (
-          <View style={styles.locationInfo}>
-            <ActivityIndicator size="small" color="#14B8A6" />
-            <Text style={styles.locationText}>Capturando GPS del árbol...</Text>
-          </View>
-        ) : formLocation ? (
+        {/* GPS location info */}
+        {arbol.latitud != null && arbol.longitud != null && (
           <View style={styles.locationInfo}>
             <MaterialIcons name="my-location" size={18} color="#14B8A6" />
             <Text style={styles.locationText}>
-              Ubicación guardada: {formLocation.lat.toFixed(5)}, {formLocation.lng.toFixed(5)}
+              Ubicación fija: {arbol.latitud.toFixed(5)}, {arbol.longitud.toFixed(5)}
             </Text>
-          </View>
-        ) : (
-          <View style={[styles.locationInfo, { borderColor: '#F43F5E', backgroundColor: 'rgba(244,63,94,0.1)' }]}>
-            <MaterialIcons name="location-disabled" size={18} color="#F43F5E" />
-            <Text style={[styles.locationText, { color: '#F43F5E' }]}>No se pudo obtener el GPS</Text>
           </View>
         )}
 
@@ -302,14 +268,14 @@ export function ArbolAddScreen({ zonaId, onBack, onSuccess }: ArbolAddScreenProp
 
         <TouchableOpacity
           style={styles.primaryButton}
-          onPress={handleAdd}
+          onPress={handleSave}
           activeOpacity={0.8}
-          disabled={isSaving || isFetchingLocation}
+          disabled={isSaving}
         >
           {isSaving ? (
             <ActivityIndicator color="#061114" />
           ) : (
-            <Text style={styles.primaryButtonText}>Guardar Árbol</Text>
+            <Text style={styles.primaryButtonText}>Guardar Cambios</Text>
           )}
         </TouchableOpacity>
         <View style={{ height: 40 }} />

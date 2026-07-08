@@ -11,7 +11,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { CatalogType, CATALOGS_CONFIG } from '../dto/catalogo.dto';
+import { CatalogType, CATALOGS_CONFIG } from '../../dto/catalogo.dto';
 
 const { width } = Dimensions.get('window');
 const DRAWER_WIDTH = width * 0.78;
@@ -119,6 +119,24 @@ export function Sidebar({ isOpen, onClose, currentScreen, onNavigate, onLogout }
             />
             <Text style={[styles.navText, isSelected('ParqueList') && styles.navTextActive]}>
               Mis Ecoparques
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.navItem,
+              isSelected('Notifications') && styles.navItemActive,
+            ]}
+            onPress={() => handleLinkPress('Notifications')}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons
+              name="notifications-none"
+              size={22}
+              color={isSelected('Notifications') ? '#14B8A6' : '#8FA3A9'}
+            />
+            <Text style={[styles.navText, isSelected('Notifications') && styles.navTextActive]}>
+              Notificaciones
             </Text>
           </TouchableOpacity>
         </View>

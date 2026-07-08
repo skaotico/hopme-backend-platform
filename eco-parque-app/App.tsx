@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useAuth } from './src/hooks/useAuth';
-import { LoginScreen } from './src/components/LoginScreen';
-import { RegisterScreen } from './src/components/RegisterScreen';
-import { ParqueListScreen } from './src/components/ParqueListScreen';
-import { ParqueAddScreen } from './src/components/ParqueAddScreen';
-import { ZonaListScreen } from './src/components/ZonaListScreen';
-import { ZonaAddScreen } from './src/components/ZonaAddScreen';
-import { ZonaEditScreen } from './src/components/ZonaEditScreen';
-import { ArbolListScreen } from './src/components/ArbolListScreen';
-import { ArbolAddScreen } from './src/components/ArbolAddScreen';
-import { ArbolEditScreen } from './src/components/ArbolEditScreen';
-import { SensorListScreen } from './src/components/SensorListScreen';
-import { Sidebar } from './src/components/Sidebar';
+import { LoginScreen } from './src/components/LoginScreen/LoginScreen';
+import { RegisterScreen } from './src/components/RegisterScreen/RegisterScreen';
+import { ParqueListScreen } from './src/components/ParqueListScreen/ParqueListScreen';
+import { ParqueAddScreen } from './src/components/ParqueAddScreen/ParqueAddScreen';
+import { ZonaListScreen } from './src/components/ZonaListScreen/ZonaListScreen';
+import { ZonaAddScreen } from './src/components/ZonaAddScreen/ZonaAddScreen';
+import { ZonaEditScreen } from './src/components/ZonaEditScreen/ZonaEditScreen';
+import { ArbolListScreen } from './src/components/ArbolListScreen/ArbolListScreen';
+import { ArbolAddScreen } from './src/components/ArbolAddScreen/ArbolAddScreen';
+import { ArbolEditScreen } from './src/components/ArbolEditScreen/ArbolEditScreen';
+import { SensorListScreen } from './src/components/SensorListScreen/SensorListScreen';
+import { NotificationListScreen } from './src/components/NotificationListScreen/NotificationListScreen';
+import { Sidebar } from './src/components/Sidebar/Sidebar';
 import { CatalogoListScreen } from './src/components/catalogo/CatalogoListScreen';
 import { CatalogoFormScreen } from './src/components/catalogo/CatalogoFormScreen';
+import { ErrorBoundary } from './src/components/ErrorBoundary/ErrorBoundary';
 import { Zona } from './src/dto/zona.dto';
 import { Arbol } from './src/dto/arbol.dto';
 import { CatalogItem, CatalogType } from './src/dto/catalogo.dto';
@@ -35,7 +37,8 @@ type ScreenName =
   | 'CatalogoList_estados-agua'
   | 'CatalogoList_tipos-sensor'
   | 'CatalogoAdd'
-  | 'CatalogoEdit';
+  | 'CatalogoEdit'
+  | 'Notifications';
 
 export default function App() {
   const { user, loading, login, register, logout } = useAuth();
@@ -242,6 +245,13 @@ export default function App() {
           />
         );
 
+      case 'Notifications':
+        return (
+          <NotificationListScreen 
+            onBack={() => setCurrentScreen('ParqueList')} 
+          />
+        );
+
       case 'ParqueList':
       default:
         return (
@@ -269,7 +279,9 @@ export default function App() {
         />
       )}
       {user ? (
-        renderAuthenticatedApp()
+        <ErrorBoundary>
+          {renderAuthenticatedApp()}
+        </ErrorBoundary>
       ) : isRegistering ? (
         <RegisterScreen
           onRegisterSuccess={() => setIsRegistering(false)}

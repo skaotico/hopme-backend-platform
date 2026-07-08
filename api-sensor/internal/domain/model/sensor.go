@@ -7,6 +7,7 @@ import (
 )
 
 // Sensor representa un dispositivo físico de monitoreo en el ecoparque.
+
 type Sensor struct {
 	ID               uuid.UUID  `json:"id"`
 	Codigo           *string    `json:"codigo,omitempty"`
@@ -61,22 +62,22 @@ type LecturaSensor struct {
 
 // CreateLecturaRequest define los datos para agregar una lectura de sensor.
 type CreateLecturaRequest struct {
-	Valor             float64   `json:"valor"`
+	Valor             float64    `json:"valor"`
 	FechaLectura      *time.Time `json:"fecha_lectura,omitempty"`
-	BateriaPorcentaje *int      `json:"bateria_porcentaje,omitempty"`
-	Observacion       *string   `json:"observacion,omitempty"`
+	BateriaPorcentaje *int       `json:"bateria_porcentaje,omitempty"`
+	Observacion       *string    `json:"observacion,omitempty"`
 }
 
 // Alerta representa una anomalía o evento de umbral detectado por un sensor.
 type Alerta struct {
-	ID             uuid.UUID  `json:"id"`
-	SensorID       uuid.UUID  `json:"sensor_id"`
-	Tipo           string     `json:"tipo"`
-	ValorDetectado *float64   `json:"valor_detectado,omitempty"`
-	Umbral         *float64   `json:"umbral,omitempty"`
-	FechaAlerta    time.Time  `json:"fecha_alerta"`
-	Estado         string     `json:"estado"`
-	Observacion    *string    `json:"observacion,omitempty"`
+	ID             uuid.UUID `json:"id"`
+	SensorID       uuid.UUID `json:"sensor_id"`
+	Tipo           string    `json:"tipo"`
+	ValorDetectado *float64  `json:"valor_detectado,omitempty"`
+	Umbral         *float64  `json:"umbral,omitempty"`
+	FechaAlerta    time.Time `json:"fecha_alerta"`
+	Estado         string    `json:"estado"`
+	Observacion    *string   `json:"observacion,omitempty"`
 }
 
 // CreateAlertaRequest define los datos necesarios para registrar una alerta.

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, StatusBar } from 'react-native';
 import * as Location from 'expo-location';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useParques } from '../hooks/useParques';
+import { useParques } from '../../hooks/useParques';
 import { styles } from './ParqueAddScreen.styles';
 
 interface ParqueAddScreenProps {

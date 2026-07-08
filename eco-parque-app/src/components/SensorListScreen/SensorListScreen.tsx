@@ -13,8 +13,9 @@ import {
   Dimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useSensores, useLecturas, useAlertas } from '../hooks/useSensores';
-import { Sensor, LecturaSensor } from '../dto/sensor.dto';
+import { useSensores, useLecturas, useAlertas } from '../../hooks/useSensores';
+import { Sensor, LecturaSensor } from '../../dto/sensor.dto';
+import { LineChart } from 'react-native-chart-kit';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -74,26 +75,9 @@ function FadeSlideCard({
   );
 }
 
-// ─── Gráfico de humedad (Victory Native XL) ─────────────────────────────────
+// ─── Gráfico de humedad (react-native-chart-kit) ────────────────────────────
 function HumedadChart({ lecturas }: { lecturas: LecturaSensor[] }) {
-  // Intentamos importar Victory Native dinámicamente para evitar error de build si
-  // las deps no están instaladas todavía.
-  let CartesianChart: any = null;
-  let Line: any = null;
-  let Area: any = null;
-  let useFont: any = null;
-
-  try {
-    const vn = require('victory-native');
-    CartesianChart = vn.CartesianChart;
-    Line = vn.Line;
-    Area = vn.Area;
-    useFont = vn.useFont;
-  } catch {
-    // Victory Native no disponible aún
-  }
-
-  if (!CartesianChart || lecturas.length === 0) {
+  if (lecturas.length === 0) {
     return (
       <View style={styles.chartEmpty}>
         <MaterialIcons name="show-chart" size={32} color={COLORS.muted} />
@@ -102,54 +86,53 @@ function HumedadChart({ lecturas }: { lecturas: LecturaSensor[] }) {
     );
   }
 
-  // Preparamos datos: índice vs valor
-  const chartData = lecturas.slice(-20).map((l, i) => ({
-    index: i,
-    valor: Math.round(l.valor * 10) / 10,
-  }));
+  // Preparamos datos
+  const recentLecturas = lecturas.slice(-15);
+  const chartData = recentLecturas.map(l => Math.round(l.valor * 10) / 10);
+  const labels = recentLecturas.map((_, i) => (i % 3 === 0 ? String(i) : ''));
 
-  // Rango del eje Y
-  const values = chartData.map((d) => d.valor);
-  const minVal = Math.max(0, Math.floor(Math.min(...values) - 5));
-  const maxVal = Math.ceil(Math.max(...values) + 5);
+  // Asegurar que siempre hay datos para el gráfico
+  const data = chartData.length > 0 ? chartData : [0];
 
   return (
-    <View style={{ height: 220, width: '100%' }}>
-      <CartesianChart
-        data={chartData}
-        xKey="index"
-        yKeys={['valor']}
-        domain={{ y: [minVal, maxVal] }}
-        axisOptions={{
-          tickCount: { x: 5, y: 4 },
-          labelColor: COLORS.muted,
-          lineColor: COLORS.border,
-          labelOffset: { x: 2, y: 4 },
+    <View style={{ height: 220, width: '100%', alignItems: 'center' }}>
+      <LineChart
+        data={{
+          labels: labels,
+          datasets: [
+            {
+              data: data,
+            }
+          ]
         }}
-        chartPressState={undefined}
-      >
-        {({ points, chartBounds }: any) => (
-          <>
-            {/* Area fill */}
-            <Area
-              points={points.valor}
-              y0={chartBounds.bottom}
-              color={COLORS.teal}
-              opacity={0.15}
-              animate={{ type: 'timing', duration: 600 }}
-              curveType="natural"
-            />
-            {/* Line */}
-            <Line
-              points={points.valor}
-              color={COLORS.teal}
-              strokeWidth={2.5}
-              animate={{ type: 'timing', duration: 600 }}
-              curveType="natural"
-            />
-          </>
-        )}
-      </CartesianChart>
+        width={SCREEN_WIDTH - 64}
+        height={220}
+        withDots={true}
+        withInnerLines={false}
+        withOuterLines={true}
+        withVerticalLines={false}
+        chartConfig={{
+          backgroundColor: COLORS.surface,
+          backgroundGradientFrom: COLORS.surface,
+          backgroundGradientTo: COLORS.surface,
+          decimalPlaces: 1,
+          color: (opacity = 1) => `rgba(45, 212, 191, ${opacity})`,
+          labelColor: (opacity = 1) => `rgba(148, 163, 184, ${opacity})`,
+          style: {
+            borderRadius: 16
+          },
+          propsForDots: {
+            r: "4",
+            strokeWidth: "2",
+            stroke: COLORS.bg
+          }
+        }}
+        bezier
+        style={{
+          marginVertical: 8,
+          borderRadius: 16
+        }}
+      />
     </View>
   );
 }

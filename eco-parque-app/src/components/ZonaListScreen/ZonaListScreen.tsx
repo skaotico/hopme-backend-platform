@@ -10,8 +10,8 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useZonas } from '../hooks/useZonas';
-import { Zona } from '../dto/zona.dto';
+import { useZonas } from '../../hooks/useZonas';
+import { Zona } from '../../dto/zona.dto';
 import { styles } from './ZonaListScreen.styles';
 
 interface ZonaListScreenProps {

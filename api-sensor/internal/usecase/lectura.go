@@ -8,6 +8,7 @@ import (
 
 	"c4-sensor/internal/domain/model"
 	"c4-sensor/internal/domain/port"
+
 	"github.com/google/uuid"
 )
 

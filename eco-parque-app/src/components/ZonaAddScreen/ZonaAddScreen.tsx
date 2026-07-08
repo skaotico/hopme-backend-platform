@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, StatusBar } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useZonas } from '../hooks/useZonas';
+import { useZonas } from '../../hooks/useZonas';
 import { styles } from './ZonaAddScreen.styles';
 
 

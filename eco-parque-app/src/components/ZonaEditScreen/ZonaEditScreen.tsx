@@ -9,9 +9,9 @@ import {
   StatusBar,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useZonas } from '../hooks/useZonas';
-import { Zona } from '../dto/zona.dto';
-import { styles } from './ZonaAddScreen.styles';
+import { useZonas } from '../../hooks/useZonas';
+import { Zona } from '../../dto/zona.dto';
+import { styles } from '../ZonaAddScreen/ZonaAddScreen.styles';
 
 interface ZonaEditScreenProps {
   parqueId: string;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, FlatList, ActivityIndicator, Alert, TouchableOpacity, RefreshControl, Platform, StatusBar } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useParques } from '../hooks/useParques';
+import { useParques } from '../../hooks/useParques';
 import { styles } from './ParqueListScreen.styles';
 
 interface ParqueListScreenProps {

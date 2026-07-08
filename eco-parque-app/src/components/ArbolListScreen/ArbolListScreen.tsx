@@ -6,12 +6,15 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Animated,
+  Alert,
+  StatusBar,
+  RefreshControl,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useArboles } from '../hooks/useArboles';
-import { CatalogoService } from '../services/catalogo.service';
-import { EspecieArbol, EstadoArbol } from '../dto/catalogo.dto';
-import { Arbol } from '../dto/arbol.dto';
+import { useArboles } from '../../hooks/useArboles';
+import { CatalogoService } from '../../services/catalogo.service';
+import { EspecieArbol, EstadoArbol } from '../../dto/catalogo.dto';
+import { Arbol } from '../../dto/arbol.dto';
 import { styles } from './ArbolListScreen.styles';
 
 interface ArbolListScreenProps {

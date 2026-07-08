@@ -6,6 +6,12 @@ export const styles = StyleSheet.create({
     backgroundColor: '#061114',
     paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight || 24) + 20,
   },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#061114',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
