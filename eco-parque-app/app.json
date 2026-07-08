@@ -36,8 +36,7 @@
             "usesCleartextTraffic": true
           }
         }
-      ],
-      "@maplibre/maplibre-react-native"
+      ]
     ]
   }
 }

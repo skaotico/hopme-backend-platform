@@ -1,28 +1,5 @@
 import React from 'react';
 import { View, Text, FlatList, ActivityIndicator, Alert, TouchableOpacity, RefreshControl, Platform, StatusBar } from 'react-native';
-import * as MapLibreGL from '@maplibre/maplibre-react-native';
-
-MapLibreGL.default.setAccessToken(null);
-
-const osmStyle = JSON.stringify({
-  version: 8,
-  sources: {
-    osm: {
-      type: 'raster',
-      tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      attribution: '&copy; OpenStreetMap Contributors',
-      maxzoom: 19,
-    },
-  },
-  layers: [
-    {
-      id: 'osm',
-      type: 'raster',
-      source: 'osm',
-    },
-  ],
-});
 import { MaterialIcons } from '@expo/vector-icons';
 import { useParques } from '../hooks/useParques';
 import { styles } from './ParqueListScreen.styles';
@@ -134,30 +111,7 @@ export function ParqueListScreen({ onOpenMenu, onAdd, onSelect }: ParqueListScre
                 </Text>
               </View>
               
-              {lat !== null && lng !== null && (
-                <View style={styles.mapContainer}>
-                  <MapLibreGL.MapView
-                    style={styles.map}
-                    styleJSON={osmStyle}
-                    scrollEnabled={false}
-                    zoomEnabled={false}
-                    pitchEnabled={false}
-                    rotateEnabled={false}
-                    logoEnabled={false}
-                    attributionEnabled={false}
-                  >
-                    <MapLibreGL.Camera
-                      zoomLevel={15}
-                      centerCoordinate={[lng, lat]}
-                      animationDuration={0}
-                    />
-                    <MapLibreGL.PointAnnotation
-                      id={`marker-${item.id}`}
-                      coordinate={[lng, lat]}
-                    />
-                  </MapLibreGL.MapView>
-                </View>
-              )}
+              {/* Mapa temporalmente deshabilitado */}
               
               <View style={styles.cardDivider} />
             

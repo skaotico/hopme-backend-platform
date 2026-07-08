@@ -5,34 +5,8 @@ import {
   FlatList,
   ActivityIndicator,
   TouchableOpacity,
-  RefreshControl,
-  StatusBar,
-  Alert,
   Animated,
 } from 'react-native';
-import * as MapLibreGL from '@maplibre/maplibre-react-native';
-
-MapLibreGL.default.setAccessToken(null);
-
-const osmStyle = JSON.stringify({
-  version: 8,
-  sources: {
-    osm: {
-      type: 'raster',
-      tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      attribution: '&copy; OpenStreetMap Contributors',
-      maxzoom: 19,
-    },
-  },
-  layers: [
-    {
-      id: 'osm',
-      type: 'raster',
-      source: 'osm',
-    },
-  ],
-});
 import { MaterialIcons } from '@expo/vector-icons';
 import { useArboles } from '../hooks/useArboles';
 import { CatalogoService } from '../services/catalogo.service';
@@ -136,30 +110,7 @@ function AnimatedCard({ item, index, onEdit, onDelete, onSensores, especies, est
         )}
       </View>
 
-      {item.latitud != null && item.longitud != null && (
-        <View style={styles.mapContainer}>
-          <MapLibreGL.MapView
-            style={styles.map}
-            styleJSON={osmStyle}
-            scrollEnabled={false}
-            zoomEnabled={false}
-            pitchEnabled={false}
-            rotateEnabled={false}
-            logoEnabled={false}
-            attributionEnabled={false}
-          >
-            <MapLibreGL.Camera
-              zoomLevel={16}
-              centerCoordinate={[item.longitud, item.latitud]}
-              animationDuration={0}
-            />
-            <MapLibreGL.PointAnnotation
-              id={`marker-${item.id}`}
-              coordinate={[item.longitud, item.latitud]}
-            />
-          </MapLibreGL.MapView>
-        </View>
-      )}
+      {/* Mapa temporalmente deshabilitado */}
 
       <View style={styles.cardFooter}>
         <Text style={styles.statsText}>
