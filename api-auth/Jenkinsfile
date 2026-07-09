@@ -174,13 +174,16 @@ pipeline {
             steps {
                 script { env.FAILED_STAGE = env.STAGE_NAME }
                 sh """
-                    docker build \\
-                    -t ${env.FULL_IMAGE_NAME} \\
-                    -t ${IMAGE_NAME}:latest \\
-                    ${APP_PATH}
+                    echo "Iniciando construcción de la imagen de producción para Auth..."
+                    docker build \
+                        --no-cache \
+                        -t ${env.FULL_IMAGE_NAME} \
+                        -f ${APP_PATH}/Dockerfile ${APP_PATH}
+                    echo "Imagen construida exitosamente: ${env.FULL_IMAGE_NAME}"
                 """
             }
         }
+
 
         /**
          * Stage: Escaneo de Vulnerabilidades
