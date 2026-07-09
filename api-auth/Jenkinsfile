@@ -206,7 +206,7 @@ pipeline {
         //     }
         // }
 
-        // /**
+        /**
          * Stage: Registro de Artefacto
          * Objetivo: Subir la imagen Docker validada al registro interno privado.
          */
