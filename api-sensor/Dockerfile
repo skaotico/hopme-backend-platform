@@ -3,7 +3,7 @@ FROM golang:1.25.7-alpine AS builder
 
 # Instalar dependencias necesarias para compilar y certificados seguros
 # hadolint ignore=DL3018
-RUN apk add --no-cache git ca-certificates
+RUN apk add --no-cache tzdata
 
 WORKDIR /app
 
