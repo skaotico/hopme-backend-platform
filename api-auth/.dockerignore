@@ -1,15 +1,11 @@
-# Ignorar rastros de git y configuraciones de editores
 .git
-.github
-.vscode
-
-# Ignorar archivos temporales de empaquetado o reportes
-*.out
-*.test
-*.exe
-dist/
+.gitignore
 bin/
-
-# Evitar que se cuelen carpetas temporales del linter o del host
-temp-linter/
+obj/
+dist/
+*.exe
+*.dll
+*.so
+.idea/
+.vscode/
 vendor/

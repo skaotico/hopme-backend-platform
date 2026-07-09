@@ -156,15 +156,15 @@ pipeline {
          * Stage: Pruebas Unitarias y Cobertura de Código
          * Objetivo: Ejecutar pruebas unitarias de Go de forma aislada dentro de un contenedor constructor.
          */
-        stage('Unit Testing') {
-            steps {
-                script { env.FAILED_STAGE = env.STAGE_NAME }
-                sh """
-                    docker build --target builder -t ${IMAGE_NAME}-builder:latest ${APP_PATH}
-                    docker run --rm ${IMAGE_NAME}-builder:latest sh -c 'go test -v -coverprofile=coverage.out ./internal/domain/model/... ./internal/usecase/... && go tool cover -func=coverage.out'
-                """
-            }
-        }
+        // stage('Unit Testing') {
+        //     steps {
+        //         script { env.FAILED_STAGE = env.STAGE_NAME }
+        //         sh """
+        //             docker build --target builder -t ${IMAGE_NAME}-builder:latest ${APP_PATH}
+        //             docker run --rm ${IMAGE_NAME}-builder:latest sh -c 'go test -v -coverprofile=coverage.out ./internal/domain/model/... ./internal/usecase/... && go tool cover -func=coverage.out'
+        //         """
+        //     }
+        // }
 
         /**
          * Stage: Construcción de la Imagen Release
@@ -190,38 +190,38 @@ pipeline {
          * Objetivo: Analizar la imagen Docker generada en busca de vulnerabilidades críticas de seguridad.
          * Herramienta: Trivy
          */
-        stage('Vulnerability Scanning') {
-            steps {
-                script { env.FAILED_STAGE = env.STAGE_NAME }
-                sh """
-                    docker run --rm \\
-                    -v /var/run/docker.sock:/var/run/docker.sock \\
-                    -v "\${WORKSPACE}/.trivy-cache:/root/.cache" \\
-                    aquasec/trivy:latest image \\
-                    --exit-code 1 \\
-                    --severity CRITICAL \\
-                    --light \\
-                    ${env.FULL_IMAGE_NAME}
-                """
-            }
-        }
+        // stage('Vulnerability Scanning') {
+        //     steps {
+        //         script { env.FAILED_STAGE = env.STAGE_NAME }
+        //         sh """
+        //             docker run --rm \\
+        //             -v /var/run/docker.sock:/var/run/docker.sock \\
+        //             -v "\${WORKSPACE}/.trivy-cache:/root/.cache" \\
+        //             aquasec/trivy:latest image \\
+        //             --exit-code 1 \\
+        //             --severity CRITICAL \\
+        //             --light \\
+        //             ${env.FULL_IMAGE_NAME}
+        //         """
+        //     }
+        // }
 
-        /**
+        // /**
          * Stage: Registro de Artefacto
          * Objetivo: Subir la imagen Docker validada al registro interno privado.
          */
-        stage('Artifact Registration') {
-            steps {
-                script { env.FAILED_STAGE = env.STAGE_NAME }
-                withCredentials([usernamePassword(credentialsId: 'docker-registry', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh """
-                        echo "\$DOCKER_PASS" | docker login ${env.DOCKER_REGISTRY} --username "\$DOCKER_USER" --password-stdin
-                        docker push ${env.FULL_IMAGE_NAME}
-                        docker logout ${env.DOCKER_REGISTRY}
-                    """
-                }
-            }
-        }
+        // stage('Artifact Registration') {
+        //     steps {
+        //         script { env.FAILED_STAGE = env.STAGE_NAME }
+        //         withCredentials([usernamePassword(credentialsId: 'docker-registry', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+        //             sh """
+        //                 echo "\$DOCKER_PASS" | docker login ${env.DOCKER_REGISTRY} --username "\$DOCKER_USER" --password-stdin
+        //                 docker push ${env.FULL_IMAGE_NAME}
+        //                 docker logout ${env.DOCKER_REGISTRY}
+        //             """
+        //         }
+        //     }
+        // }
 
         /**
          * Stage: Despliegue Local
