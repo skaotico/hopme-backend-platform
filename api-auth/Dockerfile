@@ -3,7 +3,7 @@ FROM golang:1.25.7-alpine AS builder
 
 # Instalar dependencias necesarias para compilar y certificados seguros
 # hadolint ignore=DL3018
-RUN apk add --no-cache tzdata
+RUN apk add --no-cache tzdata ca-certificates
 
 WORKDIR /app
 
@@ -15,7 +15,6 @@ RUN go mod download
 COPY . .
 
 # Compilar un binario estático altamente optimizado
-# -s -w elimina la tabla de símbolos y debuggers reduciendo hasta un 40% el peso final
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/auth-service ./cmd/api/main.go
 
 # Etapa 2: Imagen Final Minimalista (Alpine)
@@ -25,6 +24,9 @@ WORKDIR /app
 
 # Copiar certificados de seguridad necesarios para solicitudes HTTPS salientes
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# ¡CRUCIAL!: Copiar la base de datos de zonas horarias desde el builder
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
 # Copiar el binario estático del builder
 COPY --from=builder /app/auth-service /app/auth-service
