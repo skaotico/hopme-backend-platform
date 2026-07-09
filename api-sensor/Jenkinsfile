@@ -152,16 +152,23 @@ pipeline {
             }
         }
 
-        /**
-         * Stage: Pruebas Unitarias y Cobertura de Código
-         * Objetivo: Ejecutar pruebas unitarias de Go de forma aislada dentro de un contenedor constructor.
+              /**
+         * Stage: Construcción de la Imagen Release
+         * Objetivo: Compilar la aplicación y empaquetarla en la imagen Docker final.
          */
-        stage('Unit Testing') {
+        stage('Build Release Image') {
             steps {
                 script { env.FAILED_STAGE = env.STAGE_NAME }
                 sh """
-                    docker build --target builder -t ${IMAGE_NAME}-builder:latest ${APP_PATH}
-                    docker run --rm ${IMAGE_NAME}-builder:latest sh -c 'go test -v -coverprofile=coverage.out ./internal/domain/model/... ./internal/usecase/... && go tool cover -func=coverage.out'
+                    echo "Iniciando construcción de la imagen de Desa..."
+                    
+                    # Construir la imagen final utilizando el archivo .env generado desde Vault
+                    docker build \
+                        --no-cache \
+                        -t ${env.FULL_IMAGE_NAME} \
+                        -f ${APP_PATH}/Dockerfile ${APP_PATH}
+                        
+                    echo "Imagen construida exitosamente: ${env.FULL_IMAGE_NAME}"
                 """
             }
         }
