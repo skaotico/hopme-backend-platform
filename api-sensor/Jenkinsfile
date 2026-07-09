@@ -1,10 +1,10 @@
 /**
  * Pipeline CI/CD - API Sensor
- * 
+ *
  * Arquitectura del pipeline para el microservicio homelab-api-sensor.
  * Este pipeline implementa un flujo de trabajo estándar de Integración y Despliegue Continuo (CI/CD),
  * incluyendo análisis de código estático (linting), pruebas, escaneo de vulnerabilidades y despliegue local.
- * 
+ *
  * Requisitos:
  * - Host de Jenkins con motor de Docker disponible.
  * - Usuario de Jenkins con permisos para ejecutar comandos de Docker.
@@ -51,7 +51,7 @@ pipeline {
                     env.CURRENT_BRANCH = branch
 
                     def commit = env.GIT_COMMIT ?: sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
-                    
+
                     env.GIT_SHORT_COMMIT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                     env.GIT_COMMIT_AUTHOR = sh(script: 'git log -1 --pretty=%an', returnStdout: true).trim()
                     env.GIT_COMMIT_MESSAGE = sh(script: 'git log -1 --pretty=%s', returnStdout: true).trim()
@@ -85,7 +85,7 @@ pipeline {
                 script { env.FAILED_STAGE = env.STAGE_NAME }
                 script {
                     def vaultToken = env.VAULT_TOKEN
-                    
+
                     if (!vaultToken) {
                         try {
                             withCredentials([string(credentialsId: 'vault-token', variable: 'TOKEN')]) {
@@ -95,26 +95,26 @@ pipeline {
                             echo "Advertencia: No se encontró la credencial 'vault-token'. Intentando recurrir a variables de entorno locales."
                         }
                     }
-                    
+
                     if (!vaultToken) {
                         error "Se requiere un Token de Vault. Por favor configure 'vault-token' en las credenciales de Jenkins."
                     }
 
                     def response = sh(script: "curl -s -H 'X-Vault-Token: ${vaultToken}' ${VAULT_ADDR}/v1/${VAULT_SECRET_PATH}", returnStdout: true).trim()
                     def responsePostgres = sh(script: "curl -s -H 'X-Vault-Token: ${vaultToken}' ${VAULT_ADDR}/v1/${VAULT_SECRET_PATH_POSTGRES}", returnStdout: true).trim()
-                    
+
                     def secrets = parseVaultResponse(response)
                     def secretsPostgres = parseVaultResponse(responsePostgres)
-                    
+
                     if (secrets && secretsPostgres) {
                         def envContent = "# Configuración de entorno generada desde Vault - ${new Date().toString()}\n"
                         secrets.each { key, value -> envContent += "${key}=${value}\n" }
                         secretsPostgres.each { key, value -> envContent += "${key}=${value}\n" }
-                        
+
                         writeFile file: "${APP_PATH}/.env", text: envContent
-                        echo "Configuración de entorno generada exitosamente desde Vault."
+                        echo 'Configuración de entorno generada exitosamente desde Vault.'
                     } else {
-                        error "Fallo al recuperar o analizar los secretos de la API de Vault."
+                        error 'Fallo al recuperar o analizar los secretos de la API de Vault.'
                     }
                 }
             }
@@ -161,13 +161,13 @@ pipeline {
                 script { env.FAILED_STAGE = env.STAGE_NAME }
                 sh """
                     echo "Iniciando construcción de la imagen de Desa..."
-                    
+
                     # Construir la imagen final utilizando el archivo .env generado desde Vault
                     docker build \
                         --no-cache \
                         -t ${env.FULL_IMAGE_NAME} \
                         -f ${APP_PATH}/Dockerfile ${APP_PATH}
-                        
+
                     echo "Imagen construida exitosamente: ${env.FULL_IMAGE_NAME}"
                 """
             }
@@ -194,7 +194,7 @@ pipeline {
          * Objetivo: Analizar la imagen Docker generada en busca de vulnerabilidades críticas de seguridad.
          * Herramienta: Trivy
          */
-         stage('Vulnerability Scanning') {
+        stage('Vulnerability Scanning') {
             steps {
                 script { env.FAILED_STAGE = env.STAGE_NAME }
                 sh """
@@ -274,7 +274,7 @@ pipeline {
                 ]) {
                     script {
                         def cardName = "Deploy Dev - ${env.JOB_NAME} #${env.BUILD_NUMBER}"
-                        def duration = currentBuild.durationString?.replace(" and counting", "") ?: "Calculando..."
+                        def duration = currentBuild.durationString?.replace(' and counting', '') ?: 'Calculando...'
                         def cardDesc = """
 ### [${env.SERVICE_NAME}] - Deploy Success
 
@@ -300,14 +300,14 @@ pipeline {
 - **Rama:** `${env.CURRENT_BRANCH}`
 - **Hash de Commit:** `${env.GIT_SHORT_COMMIT ?: 'N/A'}`
 - **Autor:** `${env.GIT_COMMIT_AUTHOR ?: 'N/A'}`
-- **Mensaje del Commit:** 
+- **Mensaje del Commit:**
 > ${env.GIT_COMMIT_MESSAGE ?: 'N/A'}
 
 **Enlaces de Interés**
 - [Consola de Ejecución en Jenkins](${env.BUILD_URL})
 - [Documentación Swagger API](http://192.168.1.28:${env.PORT}/swagger/index.html)
 """
-                        echo "Creando tarjeta en Trello..."
+                        echo 'Creando tarjeta en Trello...'
                         writeFile file: 'trello_desc.txt', text: cardDesc
                         sh """
                             curl -v -X POST "https://api.trello.com/1/cards" \
@@ -330,47 +330,47 @@ pipeline {
     post {
         success {
             script {
-                def duration = currentBuild.durationString?.replace(" and counting", "") ?: "Desconocida"
-                def msg = "Ejecución del Pipeline: EXITOSA\n" +
+                def duration = currentBuild.durationString?.replace(' and counting', '') ?: 'Desconocida'
+                def msg = 'Ejecución del Pipeline: EXITOSA\n' +
                         "Servicio: ${env.SERVICE_NAME}\n" +
                         "Rama: ${env.CURRENT_BRANCH}\n" +
                         "Artefacto: ${env.FULL_IMAGE_NAME}\n\n" +
-                        "Contexto del Commit:\n" +
+                        'Contexto del Commit:\n' +
                         "- Autor: ${env.GIT_COMMIT_AUTHOR}\n" +
                         "- Hash: ${env.GIT_SHORT_COMMIT}\n" +
                         "- Mensaje: ${env.GIT_COMMIT_MESSAGE}\n\n" +
                         "Tiempo de Ejecución: ${duration}\n" +
-                        "Entorno:\n" +
-                        "- Endpoint: http://192.168.1.20:9096\n" +
-                        "- Documentación Swagger: http://192.168.1.20:9096/swagger/\n" +
+                        'Entorno:\n' +
+                        '- Endpoint: http://192.168.1.20:9096\n' +
+                        '- Documentación Swagger: http://192.168.1.20:9096/swagger/\n' +
                         "URL del Build: ${env.BUILD_URL}"
-                
+
                 sendTelegramMessage(msg)
             }
         }
 
         failure {
             script {
-                def duration = currentBuild.durationString?.replace(" and counting", "") ?: "Desconocida"
-                def failedStageName = env.FAILED_STAGE ?: "Desconocida"
-                
-                def msg = "Ejecución del Pipeline: FALLIDA\n" +
+                def duration = currentBuild.durationString?.replace(' and counting', '') ?: 'Desconocida'
+                def failedStageName = env.FAILED_STAGE ?: 'Desconocida'
+
+                def msg = 'Ejecución del Pipeline: FALLIDA\n' +
                         "Servicio: ${env.SERVICE_NAME}\n" +
                         "Rama: ${env.CURRENT_BRANCH}\n" +
                         "Fallo en el Stage: ${failedStageName}\n" +
                         "Tiempo de Ejecución: ${duration}\n\n" +
-                        "Contexto del Commit:\n" +
+                        'Contexto del Commit:\n' +
                         "- Autor: ${env.GIT_COMMIT_AUTHOR}\n" +
                         "- Hash: ${env.GIT_SHORT_COMMIT}\n" +
                         "- Mensaje: ${env.GIT_COMMIT_MESSAGE}\n\n" +
                         "URL del Build: ${env.BUILD_URL}"
-                
+
                 try {
                     def logContent = currentBuild.rawBuild.getLog(100).join('\n')
                     writeFile file: 'error_details.log', text: logContent
                     sendTelegramDocument('error_details.log', msg)
                 } catch (Exception e) {
-                    sendTelegramMessage(msg + "\n\nPor favor revise la consola de Jenkins para los logs detallados.")
+                    sendTelegramMessage(msg + '\n\nPor favor revise la consola de Jenkins para los logs detallados.')
                 }
             }
         }
@@ -383,9 +383,9 @@ pipeline {
 
                     REPO="${env.DOCKER_REGISTRY}/${env.DOCKER_NAMESPACE}/${env.SERVICE_NAME}"
                     SKIP_LINES=\$((${env.IMAGES_TO_KEEP} + 1))
-                    
+
                     IMAGES_TO_DELETE=\$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "^\${REPO}:" | tail -n +\$SKIP_LINES)
-                    
+
                     if [ ! -z "\$IMAGES_TO_DELETE" ]; then
                         docker rmi -f \$IMAGES_TO_DELETE || true
                     fi
@@ -409,7 +409,7 @@ def parseVaultResponse(String response) {
             json.data.data.each { key, value -> secrets[key] = value }
         }
     } catch (Exception e) {
-        println "Error parseando JSON de Vault: " + e.getMessage()
+        println 'Error parseando JSON de Vault: ' + e.getMessage()
     }
     return secrets
 }
